@@ -7,6 +7,7 @@ from typing import Any
 import voluptuous as vol
 
 from homeassistant import config_entries
+from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.data_entry_flow import FlowResult
 from homeassistant.exceptions import HomeAssistantError
@@ -83,7 +84,6 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             errors["base"] = "unknown"
         else:
             await self.async_set_unique_id('AMAS-'+str(info["device_id"]))
-            self._abort_if_unique_id_configured()
             return self.async_create_entry(title='AMAS-'+str(info["device_id"]), data=user_input)
 
         return self.async_show_form(
