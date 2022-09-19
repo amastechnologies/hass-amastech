@@ -3,9 +3,7 @@
   "name": "AMASTech",
   "config_flow": true,
   "documentation": "https://www.home-assistant.io/integrations/amas",
-  "requirements": [
-    "requests==2.28.1"
-  ],
+  "requirements": [],
   "ssdp": [],
   "zeroconf": [],
   "homekit": {},
