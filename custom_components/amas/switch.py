@@ -42,7 +42,7 @@ async def async_setup_entry(
 
 
 class AMASCirculationSwitch(AMASTechEntity, SwitchEntity):
-    """Representation of a Pi-hole switch."""
+    """Representation of a AMAS switch."""
 
     _attr_icon = "mdi:pi-hole"
 
@@ -78,7 +78,7 @@ class AMASCirculationSwitch(AMASTechEntity, SwitchEntity):
             _LOGGER.error("Unable to turn off circulation: %s", err)
 
 class AMASDrainSwitch(AMASTechEntity, SwitchEntity):
-    """Representation of a Pi-hole switch."""
+    """Representation of a AMAS switch."""
 
     _attr_icon = "mdi:pi-hole"
 

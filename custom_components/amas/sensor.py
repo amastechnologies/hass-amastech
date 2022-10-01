@@ -46,7 +46,7 @@ async def async_setup_entry(
 
 
 class AMASSensor(AMASTechEntity, SensorEntity):
-    """Representation of a Pi-hole sensor."""
+    """Representation of a AMAS sensor."""
 
     entity_description: AMASSensorEntityDescription
 

@@ -5,13 +5,14 @@ import logging
 import json
 import string
 import requests
-
+from typing import Any
 import homeassistant.helpers.config_validation as cv
 from homeassistant.config_entries import ConfigEntry
 import voluptuous as vol
 
 from homeassistant.components.binary_sensor import BinarySensorEntity, BinarySensorDeviceClass
 from homeassistant.core import HomeAssistant, callback
+from homeassistant.const import CONF_NAME
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.typing import ConfigType, DiscoveryInfoType
 from homeassistant.helpers.update_coordinator import (
@@ -21,71 +22,66 @@ from homeassistant.helpers.update_coordinator import (
 )
 
 
-from .const import DOMAIN
-from . import AMASDataCoordinator
+from .const import (
+    DOMAIN as AMAS_DOMAIN,
+    DATA_KEY_API,
+    DATA_KEY_COORDINATOR,
+    BINARY_SENSOR_TYPES,
+    AMASHub,
+    AMASBinarySensorEntityDescription
+    )
+from . import AMASTechEntity
 
 _LOGGER = logging.getLogger(__name__)
 
-async def async_setup_entry(hass, entry, async_add_entities):
-    """Config entry example."""
-    # assuming API object stored here by __init__.py
-    hub = hass.data[DOMAIN][entry.entry_id]
-    coordinator = AMASDataCoordinator(hass, hub)
 
-    # Fetch initial data so we have data when entities subscribe
-    #
-    # If the refresh fails, async_config_entry_first_refresh will
-    # raise ConfigEntryNotReady and setup will try again later
-    #
-    # If you do not want to retry setup on failure, use
-    # coordinator.async_refresh() instead
-    #
-    await coordinator.async_config_entry_first_refresh()
+async def async_setup_entry(
+    hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback
+) -> None:
+    """Set up the AMAS binary sensor."""
+    name = entry.data[CONF_NAME]
+    amas_data = hass.data[AMAS_DOMAIN][entry.entry_id]
 
-    for i in [AMASPumpStatus, AMASLightStatus]:
-        async_add_entities(i(coordinator))
+    binary_sensors = [
+        AMASBinarySensor(
+            amas_data[DATA_KEY_API],
+            amas_data[DATA_KEY_COORDINATOR],
+            name,
+            entry.entry_id,
+            description,
+        )
+        for description in BINARY_SENSOR_TYPES
+    ]
+
+    async_add_entities(binary_sensors, True)
 
 
-class AMASPumpStatus(CoordinatorEntity[AMASDataCoordinator], BinarySensorEntity):
-    """AMAS Pump Status CoordinatorEntity.
+class AMASBinarySensor(AMASTechEntity, BinarySensorEntity):
+    """Representation of a AMAS binary sensor."""
 
-    The CoordinatorEntity class provides:
-      should_poll
-      async_update
-      async_added_to_hass
-      available
+    entity_description: AMASBinarySensorEntityDescription
 
-    """
-    def __init__(self, coordinator) -> None:
-        super().__init__(coordinator)
-        self._attr_name = "Pump Status"
-        self._attr_device_class = BinarySensorDeviceClass.POWER
+    def __init__(
+        self,
+        api: AMASHub,
+        coordinator: DataUpdateCoordinator,
+        _name: str,
+        _device_unique_id: str,
+        description: AMASBinarySensorEntityDescription,
+    ) -> None:
+        """Initialize a AMAS sensor."""
+        super().__init__(api, coordinator, _name, _device_unique_id)
+        self.entity_description = description
+        self._attr_name = f"{_name} {description.name}"
+        self._attr_unique_id = f"{self._device_unique_id}/{description.name}"
 
-    @callback
-    def _handle_coordinator_update(self) -> None:
-        """Handle updated data from the coordinator."""
-        self._attr_is_on = self.coordinator.data['pump']['status']
-        self._attr_unique_id = 'AMAS-' + str(self.coordinator.data["dev_id"]) + '-CP-STAT'
-        self.async_write_ha_state()
+    @property
+    def is_on(self) -> bool:
+        """Return if the service is on."""
 
-class AMASLightStatus(CoordinatorEntity[AMASDataCoordinator], BinarySensorEntity):
-    """AMAS Light Status CoordinatorEntity.
+        return self.entity_description.state_value(self.api)
 
-    The CoordinatorEntity class provides:
-      should_poll
-      async_update
-      async_added_to_hass
-      available
-
-    """
-    def __init__(self, coordinator) -> None:
-        super().__init__(coordinator)
-        self._attr_name = "Light Status"
-        self._attr_device_class = BinarySensorDeviceClass.POWER
-
-    @callback
-    def _handle_coordinator_update(self) -> None:
-        """Handle updated data from the coordinator."""
-        self._attr_is_on = self.coordinator.data['light']['status']
-        self._attr_unique_id = 'AMAS-' + str(self.coordinator.data["dev_id"]) + '-LT-STAT'
-        self.async_write_ha_state()
+    @property
+    def extra_state_attributes(self) -> dict[str, Any] | None:
+        """Return the state attributes of the Pi-hole."""
+        return self.entity_description.extra_value(self.api)
