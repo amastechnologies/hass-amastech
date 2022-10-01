@@ -2,15 +2,24 @@
 from __future__ import annotations
 from datetime import timedelta
 import logging
+import requests, json
+
 
 import async_timeout
+import voluptuous as vol
 
-from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import Platform
-from homeassistant.core import HomeAssistant
-from homeassistant.exceptions import HomeAssistantError, ConfigEntryAuthFailed 
-from homeassistant.core import callback
-from homeassistant.exceptions import ConfigEntryAuthFailed
+from homeassistant.config_entries import SOURCE_IMPORT, ConfigEntry
+from homeassistant.const import (
+    CONF_API_KEY,
+    CONF_HOST,
+    CONF_NAME,
+    Platform,
+)
+from homeassistant.core import HomeAssistant, callback
+from homeassistant.exceptions import ConfigEntryAuthFailed, ConfigEntryNotReady
+from homeassistant.helpers import config_validation as cv
+from homeassistant.helpers.entity import DeviceInfo
+from homeassistant.helpers.typing import ConfigType
 from homeassistant.helpers.update_coordinator import (
     CoordinatorEntity,
     DataUpdateCoordinator,
@@ -18,167 +27,143 @@ from homeassistant.helpers.update_coordinator import (
 )
 
 
-from .const import DOMAIN
-import requests, json
-from . import config_flow
-
-# TODO List the platforms that you want to support.
-# For your initial PR, limit it to 1 platform.
-PLATFORMS: list[Platform] = [Platform.SWITCH, Platform.SENSOR, Platform.BINARY_SENSOR]
+from .const import (
+    DOMAIN, 
+    DEFAULT_NAME, 
+    AMASHub,
+    DATA_KEY_API,
+    DATA_KEY_COORDINATOR,
+    MIN_TIME_BETWEEN_UPDATES
+)
 
 _LOGGER = logging.getLogger(__name__)
+
+AMAS_SCHEMA = vol.Schema(
+    vol.All(
+        {
+            vol.Required(CONF_HOST): cv.string,
+            vol.Required(CONF_API_KEY): cv.string,
+            vol.Optional(CONF_NAME, default=DEFAULT_NAME): cv.string,
+        },
+    )
+)
+
+CONFIG_SCHEMA = vol.Schema(
+    vol.All(
+        cv.deprecated(DOMAIN),
+        {DOMAIN: vol.Schema(vol.All(cv.ensure_list, [AMAS_SCHEMA]))},
+    ),
+    extra=vol.ALLOW_EXTRA,
+)
+
+
+async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
+    """Set up the AMASTech integration."""
+
+    hass.data[DOMAIN] = {}
+
+    # import
+    if DOMAIN in config:
+        for conf in config[DOMAIN]:
+            hass.async_create_task(
+                hass.config_entries.flow.async_init(
+                    DOMAIN, context={"source": SOURCE_IMPORT}, data=conf
+                )
+            )
+
+    return True
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up AMASTech from a config entry."""
 
-    hass.data.setdefault(DOMAIN, {})
-    host = entry.data['CONF_HOST']
-    api_key = entry.data['CONF_API_KEY']
-    hub = AMASHub(host)
-    if await hub.authenticate(api_key):
-        device_info = hub.get_data()
+    host = entry.data[CONF_HOST]
+    api_key = entry.data[CONF_API_KEY]
+    name = entry.data[CONF_NAME]
+    api = AMASHub(host)
+    if await api.authenticate(api_key):
+        device_info = api.get_data()
         hass.config_entries.async_update_entry(entry, unique_id='AMAS-'+str(device_info['dev_id']))
-        hass.data[DOMAIN][entry.entry_id] = hub
-    else:
-        raise InvalidAuth
-    # TODO 1. Create API instance
-    # TODO 2. Validate the API connection (and authentication)
+    
     # TODO 3. Store an API object for your platforms to access
     # hass.data[DOMAIN][entry.entry_id] = MyApi(...)
+    
+    async def async_update_data() -> None:
+        """Fetch data from API endpoint.
 
+        """
+        try:
+            # Note: asyncio.TimeoutError and aiohttp.ClientError are already
+            # handled by the data update coordinator.
+            async with async_timeout.timeout(10):
+                await api.update_info()
+                await api.update_photo()
+        except ConfigEntryAuthFailed as err:
+            # Raising ConfigEntryAuthFailed will cancel future updates
+            # and start a config flow with SOURCE_REAUTH (async_step_reauth)
+            raise ConfigEntryAuthFailed from err
+        except ConfigEntryNotReady as err:
+            raise UpdateFailed(f"Error communicating with API: {err}")
 
-    await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
+    coordinator = DataUpdateCoordinator(
+        hass,
+        _LOGGER,
+        name=name,
+        update_method=async_update_data,
+        update_interval=MIN_TIME_BETWEEN_UPDATES,
+    )
+
+    hass.data[DOMAIN][entry.entry_id] = {
+        DATA_KEY_API: api,
+        DATA_KEY_COORDINATOR: coordinator,
+        }
+
+    await hass.config_entries.async_forward_entry_setups(entry, _async_platforms(entry))
 
     return True
 
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Unload a config entry."""
-    if unload_ok := await hass.config_entries.async_unload_platforms(entry, PLATFORMS):
+    if unload_ok := await hass.config_entries.async_unload_platforms(entry, _async_platforms(entry)):
         hass.data[DOMAIN].pop(entry.entry_id)
 
     return unload_ok
 
-class AMASHub:
-    """AMASHub class to check authentication and get device info.
 
-    """
-
-    def __init__(self, host: str) -> None:
-        """Initialize."""
-        self.host = host
-        self.api_key = None
-
-    async def authenticate(self, api_key: str) -> bool:
-        """Test if we can authenticate with the host."""
-        url = 'http://' + self.host + '/alerts'
-        headers = {'User-Agent': 'hass', 'Accept': '*/*', 'x-api-key': api_key}
-        try:
-            r = requests.get(url, headers=headers)
-            if r.status_code == 200:
-                self.api_key = api_key
-                return True
-            else:
-                return False
-        except:
-            raise CannotConnect
-    
-    def get_data(self) -> json:
-        """Get device information."""
-        url = 'http://' + self.host + '/data'
-        headers = {'User-Agent': 'hass', 'Accept': '*/*', 'x-api-key': self.api_key}
-        try:
-            r = requests.get(url, headers=headers)
-            if r.status_code == 200:
-                device_info = json.loads(r.content.decode())['state']['reported']
-                return device_info
-            else:
-                raise InvalidAuth
-        except:
-            raise CannotConnect
-    
-    def get_alerts(self) -> json:
-        """Get device alerts."""
-        url = 'http://' + self.host + '/alerts'
-        headers = {'User-Agent': 'hass', 'Accept': '*/*', 'x-api-key': self.api_key}
-        try:
-            r = requests.get(url, headers=headers)
-            if r.status_code == 200:
-                device_alerts = json.loads(r.content.decode())['state']['reported']
-                return device_alerts
-            else:
-                raise InvalidAuth
-        except:
-            raise CannotConnect
-
-    def get_photo(self) -> requests:
-        """Get device photo."""
-        url = 'http://' + self.host + '/photo'
-        headers = {'User-Agent': 'hass', 'Accept': '*/*', 'x-api-key': self.api_key}
-        try:
-            r = requests.get(url, headers=headers)
-            if r.status_code == 200:
-                return r
-            else:
-                raise InvalidAuth
-        except:
-            raise CannotConnect
-
-    def control_device(self, state: json) -> json:
-        """Control device."""
-        url = 'http://' + self.host + '/configure'
-        headers = {'User-Agent': 'hass', 'Accept': '*/*', 'x-api-key': self.api_key}
-        body = {'state': {'desired': state}}
-        try:
-            r = requests.post(url, headers=headers, body=body)
-            if r.status_code == 200:
-                device_info = json.loads(r.content.decode())['state']['reported']
-                return device_info
-            else:
-                raise InvalidAuth
-        except:
-            raise CannotConnect
-
-class CannotConnect(HomeAssistantError):
-    """Error to indicate we cannot connect."""
+# TODO List the platforms that you want to support.
+# For your initial PR, limit it to 1 platform.
+@callback
+def _async_platforms(entry: ConfigEntry) -> list[Platform]:
+    """Return platforms to be loaded / unloaded."""
+    platforms = [Platform.SWITCH, Platform.SENSOR, Platform.BINARY_SENSOR]
+    return platforms
 
 
-class InvalidAuth(HomeAssistantError):
-    """Error to indicate there is invalid auth."""
+class AMASTechEntity(CoordinatorEntity):
+    """Representation of a AMASTech entity."""
 
-class AMASDataCoordinator(DataUpdateCoordinator):
-    """AMAS Data coordinator."""
+    def __init__(
+        self,
+        api: AMASHub,
+        coordinator: DataUpdateCoordinator,
+        name: str,
+        device_unique_id: str,
+    ) -> None:
+        """Initialize a AMASTech entity."""
+        super().__init__(coordinator)
+        self.api = api
+        self._name = name
+        self._device_unique_id = device_unique_id
 
-    def __init__(self, hass, hub):
-        """Initialize my coordinator."""
-        super().__init__(
-            hass,
-            _LOGGER,
-            # Name of the data. For logging purposes.
-            name="AMAS Data Coordinator",
-            # Polling interval. Will only be polled if there are subscribers.
-            update_interval=timedelta(seconds=30),
+    @property
+    def device_info(self) -> DeviceInfo:
+        """Return the device information of the entity."""
+        config_url = f"http://{self.api.host}/data"
+        
+        return DeviceInfo(
+            identifiers={(DOMAIN, self.device_unique_id)},
+            name=self._name,
+            manufacturer="AMAS Technologies LLC",
+            configuration_url=config_url,
         )
-        self.hub = hub
-
-    async def _async_update_data(self):
-        """Fetch data from API endpoint.
-
-        This is the place to pre-process the data to lookup tables
-        so entities can quickly look up their data.
-        """
-        try:
-            # Note: asyncio.TimeoutError and aiohttp.ClientError are already
-            # handled by the data update coordinator.
-            async with async_timeout.timeout(10):
-                device_info = self.hub.get_data()
-                device_alerts = self.hub.get_alerts()
-                device_info.update(device_alerts)
-                return device_info
-        except InvalidAuth as err:
-            # Raising ConfigEntryAuthFailed will cancel future updates
-            # and start a config flow with SOURCE_REAUTH (async_step_reauth)
-            raise ConfigEntryAuthFailed from err
-        except CannotConnect as err:
-            raise UpdateFailed(f"Error communicating with API: {err}")
