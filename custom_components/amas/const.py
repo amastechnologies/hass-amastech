@@ -208,7 +208,7 @@ class AMASHub:
 class AMASSensorEntityDescription(SensorEntityDescription):
     """Describes PiHole sensor entity."""
 
-    icon: str = "mdi:pi-hole"
+    icon: str = "mdi:leaf"
 
 
 SENSOR_TYPES: tuple[AMASSensorEntityDescription, ...] = (
@@ -216,19 +216,19 @@ SENSOR_TYPES: tuple[AMASSensorEntityDescription, ...] = (
         key="ambient_temp",
         name="Ambient Temperature",
         native_unit_of_measurement=TEMP_CELSIUS,
-        icon="mdi:close-octagon-outline",
+        icon="mdi:thermometer",
     ),
     AMASSensorEntityDescription(
         key="humidity",
         name="Relative Humidity",
         native_unit_of_measurement=PERCENTAGE,
-        icon="mdi:close-octagon-outline",
+        icon="mdi:water-percent",
     ),
     AMASSensorEntityDescription(
         key="water_level",
         name="Water Level",
         native_unit_of_measurement=PERCENTAGE,
-        icon="mdi:account-outline",
+        icon="mdi:waves-arrow-up",
     ),
 )
 
@@ -271,7 +271,7 @@ BINARY_SENSOR_TYPES: tuple[AMASBinarySensorEntityDescription, ...] = (
         key="water_alert",
         name="Check Water Level",
         entity_registry_enabled_default=False,
-        device_class=BinarySensorDeviceClass.LIGHT,
+        device_class=BinarySensorDeviceClass.BATTERY,
         state_value=lambda api: api.device_info['light']['status'] == 'Low',
     ),
 )
