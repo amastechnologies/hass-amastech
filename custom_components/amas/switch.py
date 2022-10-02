@@ -59,7 +59,7 @@ class AMASCirculationSwitch(AMASTechEntity, SwitchEntity):
     @property
     def is_on(self) -> bool:
         """Return if the service is on."""
-        return self.api.device_info.get("pump").get('powered')  # type: ignore[no-any-return]
+        return bool(self.api.device_info["pump"]['powered'])  # type: ignore[no-any-return]
 
     async def async_turn_on(self, **kwargs: Any) -> None:
         """Turn on the service."""
@@ -96,7 +96,7 @@ class AMASDrainSwitch(AMASTechEntity, SwitchEntity):
     @property
     def is_on(self) -> bool:
         """Return if the service is on."""
-        return self.api.device_info.get("pump").get('drain')  # type: ignore[no-any-return]
+        return bool(self.api.device_info["pump"]['drain'])  # type: ignore[no-any-return]
 
     async def async_turn_on(self, **kwargs: Any) -> None:
         """Turn on the service."""
