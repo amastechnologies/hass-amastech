@@ -254,28 +254,25 @@ class AMASBinarySensorEntityDescription(
 
 BINARY_SENSOR_TYPES: tuple[AMASBinarySensorEntityDescription, ...] = (
     AMASBinarySensorEntityDescription(
-        # Deprecated, scheduled to be removed in 2022.6
         key="light_status",
         name="Light Status",
-        entity_registry_enabled_default=False,
+        entity_registry_enabled_default=True,
         device_class=BinarySensorDeviceClass.LIGHT,
         state_value=lambda api: bool(api.device_info['light']['status']),
     ),
     AMASBinarySensorEntityDescription(
-        # Deprecated, scheduled to be removed in 2022.6
         key="pump_status",
         name="Pump Status",
-        entity_registry_enabled_default=False,
+        entity_registry_enabled_default=True,
         device_class=BinarySensorDeviceClass.RUNNING,
         state_value=lambda api: bool(api.device_info['pump']['status']),
     ),
     AMASBinarySensorEntityDescription(
-        # Deprecated, scheduled to be removed in 2022.6
         key="water_alert",
         name="Check Water Level",
-        entity_registry_enabled_default=False,
+        entity_registry_enabled_default=True,
         device_class=BinarySensorDeviceClass.BATTERY,
-        state_value=lambda api: api.device_info['light']['status'] == 'Low',
+        state_value=lambda api: api.device_info['light']['status'] != 'Low',
     ),
 )
 

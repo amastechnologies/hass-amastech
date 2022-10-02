@@ -28,13 +28,13 @@ async def async_setup_entry(
         AMASCirculationSwitch(
             amas_data[DATA_KEY_API],
             amas_data[DATA_KEY_COORDINATOR],
-            name+'Circulation',
+            name+' Circulation',
             entry.entry_id,
         ),
         AMASDrainSwitch(
             amas_data[DATA_KEY_API],
             amas_data[DATA_KEY_COORDINATOR],
-            name+'Drain',
+            name+' Drain',
             entry.entry_id,
         )
     ]
