@@ -51,7 +51,7 @@ class AMASHub:
             # r = requests.get(url, headers=headers)
             async with async_timeout.timeout(10):
                 response = await self.session.get(url, headers=headers)
-            if response.status_code == 200:
+            if response.status == 200:
                 self.api_key = api_key
                 return True
             else:
@@ -68,7 +68,7 @@ class AMASHub:
             # r = requests.get(url, headers=headers)
             async with async_timeout.timeout(10):
                 response = await self.session.get(url, headers=headers)
-            if response.status_code == 200:
+            if response.status == 200:
                 device_info = await response.json()
                 device_info = device_info['state']['reported']
                 return device_info
@@ -87,7 +87,7 @@ class AMASHub:
             # r = requests.get(url, headers=headers)
             async with async_timeout.timeout(10):
                 response = await self.session.get(url, headers=headers)
-            if response.status_code == 200:
+            if response.status == 200:
                 device_info = await response.json()
                 device_info = device_info['state']['reported']
                 return device_info
@@ -106,7 +106,7 @@ class AMASHub:
             # r = requests.get(url, headers=headers)
             async with async_timeout.timeout(10):
                 response = await self.session.get(url, headers=headers)
-            if response.status_code == 200:
+            if response.status == 200:
                 return response
             else:
                 _LOGGER.fatal("Invalid authentication!")
@@ -124,7 +124,7 @@ class AMASHub:
             # r = requests.post(url, headers=headers, body=body)
             async with async_timeout.timeout(10):
                 response = await self.session.post(url, headers=headers, body=body)
-            if response.status_code == 200:
+            if response.status == 200:
                 device_info = await response.json()
                 device_info = device_info['state']['reported']
                 return device_info
@@ -143,7 +143,7 @@ class AMASHub:
             # r = requests.get(url, headers=headers)
             async with async_timeout.timeout(10):
                 response = await self.session.get(url, headers=headers)
-            if response.status_code == 200:
+            if response.status == 200:
                 device_info = await response.json()
                 device_info = device_info['state']['reported']
             else:
@@ -153,7 +153,7 @@ class AMASHub:
             # r = requests.get(url, headers=headers)
             async with async_timeout.timeout(10):
                 response = await self.session.get(url, headers=headers)
-            if response.status_code == 200:
+            if response.status == 200:
                 device_alerts = await response.json()
                 device_alerts = device_alerts['state']['reported']
             else:
@@ -172,7 +172,7 @@ class AMASHub:
         try:
             async with async_timeout.timeout(10):
                 response = await self.session.get(url, headers=headers)
-            if response.status_code == 200:
+            if response.status == 200:
                 self.device_photo = response
             else:
                 _LOGGER.fatal("Invalid authentication!")
