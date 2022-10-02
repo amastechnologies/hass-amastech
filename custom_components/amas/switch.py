@@ -93,7 +93,6 @@ class AMASDrainSwitch(AMASTechEntity, SwitchEntity):
         return f"{self._device_unique_id}/Drain"
 
     @property
-    @property
     def is_on(self) -> bool:
         """Return if the service is on."""
         return bool(self.api.device_info["pump"]['drain'])  # type: ignore[no-any-return]
