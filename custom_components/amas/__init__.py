@@ -147,14 +147,14 @@ class AMASTechEntity(CoordinatorEntity):
         self,
         api: AMASHub,
         coordinator: DataUpdateCoordinator,
-        name: str,
-        device_unique_id: str,
+        _name: str,
+        _device_unique_id: str,
     ) -> None:
         """Initialize a AMASTech entity."""
         super().__init__(coordinator)
         self.api = api
-        self._name = name
-        self._device_unique_id = device_unique_id
+        self._name = _name
+        self._device_unique_id = _device_unique_id
 
     @property
     def device_info(self) -> DeviceInfo:
@@ -162,7 +162,7 @@ class AMASTechEntity(CoordinatorEntity):
         config_url = f"http://{self.api.host}/data"
         
         return DeviceInfo(
-            identifiers={(DOMAIN, self.device_unique_id)},
+            identifiers={(DOMAIN, self._device_unique_id)},
             name=self._name,
             manufacturer="AMAS Technologies LLC",
             configuration_url=config_url,
