@@ -139,7 +139,7 @@ class AMASHub:
         try:
             # r = requests.post(url, headers=headers, body=body)
             async with async_timeout.timeout(10):
-                response = await self.session.post(url, headers=headers, data=body)
+                response = await self.session.post(url, json=body, headers=headers)
                 _LOGGER.debug("Response content: %s", str(response.content))
             if response.status == 200:
                 device_info = await response.json()
