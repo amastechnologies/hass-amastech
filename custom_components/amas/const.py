@@ -126,7 +126,7 @@ class AMASHub:
             _LOGGER.warning("Failed to connect: %s", e)
             raise ConfigEntryNotReady
 
-    async def control_device(self, state: json) -> json:
+    async def control_device(self, state: json) -> None:
         """Control device."""
         url = 'http://' + self.host + '/configure'
         headers = {'Accept': '*/*', 'x-api-key': self.api_key}
@@ -138,7 +138,7 @@ class AMASHub:
             if response.status == 200:
                 device_info = await response.json()
                 device_info = device_info['state']['reported']
-                return device_info
+                self.device_info = device_info
             elif response.status == 401:
                 _LOGGER.fatal("Invalid authentication!")
                 raise ConfigEntryAuthFailed
