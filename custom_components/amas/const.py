@@ -21,7 +21,7 @@ _LOGGER = logging.getLogger(__name__)
 
 
 DOMAIN = 'amas'
-DEFAULT_NAME = 'AMASTech Tower Device'
+DEFAULT_NAME = 'AMAS Tower'
 DATA_KEY_API = 'api'
 DATA_KEY_COORDINATOR = 'coordinator'
 MIN_TIME_BETWEEN_UPDATES = timedelta(seconds=30)
@@ -269,7 +269,7 @@ BINARY_SENSOR_TYPES: tuple[AMASBinarySensorEntityDescription, ...] = (
     ),
     AMASBinarySensorEntityDescription(
         key="water_alert",
-        name="Check Water Level",
+        name="Water Level",
         entity_registry_enabled_default=True,
         device_class=BinarySensorDeviceClass.BATTERY,
         state_value=lambda api: api.device_info['light']['status'] != 'Low',
