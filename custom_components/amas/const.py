@@ -3,13 +3,12 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from dataclasses import dataclass
-from homeassistant.exceptions import ConfigEntryAuthFailed, ConfigEntryNotReady
+from homeassistant.exceptions import HomeAssistantError, ConfigEntryAuthFailed, ConfigEntryNotReady
 import json, logging
 import aiohttp
 import async_timeout
 from datetime import timedelta
 from typing import Any
-from homeassistant.helpers.aiohttp_client import async_create_clientsession
 from homeassistant.components.sensor import SensorEntityDescription
 from homeassistant.core import HomeAssistant
 from homeassistant.components.binary_sensor import (
@@ -118,6 +117,8 @@ class AMASHub:
             elif response.status == 401:
                 _LOGGER.fatal("Invalid authentication!")
                 raise ConfigEntryAuthFailed
+            elif response.status == 500:
+                self.device_photo = response
             else:
                 _LOGGER.critical("Status code: "+str(response.status))
                 raise ConfigEntryNotReady
@@ -164,7 +165,7 @@ class AMASHub:
                 raise ConfigEntryAuthFailed
             else:
                 _LOGGER.critical("Status code: "+str(response.status))
-                raise ConfigEntryNotReady
+                raise CannotConnect
             url = 'http://' + self.host + '/alerts'
             # r = requests.get(url, headers=headers)
             async with async_timeout.timeout(10):
@@ -174,7 +175,7 @@ class AMASHub:
                 device_alerts = device_alerts['state']['reported']
             elif response.status == 401:
                 _LOGGER.fatal("Invalid authentication!")
-                raise ConfigEntryAuthFailed
+                raise CannotConnect
             else:
                 _LOGGER.critical("Status code: "+str(response.status))
                 raise ConfigEntryNotReady
@@ -196,6 +197,8 @@ class AMASHub:
             elif response.status == 401:
                 _LOGGER.fatal("Invalid authentication!")
                 raise ConfigEntryAuthFailed
+            elif response.status == 500:
+                self.device_photo = response
             else:
                 _LOGGER.critical("Status code: "+str(response.status))
                 raise ConfigEntryNotReady
@@ -275,3 +278,6 @@ BINARY_SENSOR_TYPES: tuple[AMASBinarySensorEntityDescription, ...] = (
         state_value=lambda api: api.device_info['light']['status'] == 'Low',
     ),
 )
+
+class CannotConnect(HomeAssistantError):
+    """Error to indicate we cannot connect."""
