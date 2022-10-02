@@ -28,13 +28,13 @@ async def async_setup_entry(
         AMASCirculationSwitch(
             amas_data[DATA_KEY_API],
             amas_data[DATA_KEY_COORDINATOR],
-            name,
+            name+'Circulation',
             entry.entry_id,
         ),
         AMASDrainSwitch(
             amas_data[DATA_KEY_API],
             amas_data[DATA_KEY_COORDINATOR],
-            name,
+            name+'Drain',
             entry.entry_id,
         )
     ]
@@ -44,7 +44,7 @@ async def async_setup_entry(
 class AMASCirculationSwitch(AMASTechEntity, SwitchEntity):
     """Representation of a AMAS switch."""
 
-    _attr_icon = "mdi:pi-hole"
+    _attr_icon = "mdi:cached"
 
     @property
     def name(self) -> str:
@@ -80,7 +80,7 @@ class AMASCirculationSwitch(AMASTechEntity, SwitchEntity):
 class AMASDrainSwitch(AMASTechEntity, SwitchEntity):
     """Representation of a AMAS switch."""
 
-    _attr_icon = "mdi:pi-hole"
+    _attr_icon = "mdi:water-minus"
 
     @property
     def name(self) -> str:
