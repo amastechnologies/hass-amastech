@@ -2,7 +2,6 @@
 from __future__ import annotations
 from datetime import timedelta
 import logging
-import requests, json
 
 
 import async_timeout

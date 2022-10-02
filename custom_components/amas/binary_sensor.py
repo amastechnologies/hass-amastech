@@ -2,15 +2,11 @@
 from __future__ import annotations
 
 import logging
-import json
-import string
-import requests
 from typing import Any
 import homeassistant.helpers.config_validation as cv
 from homeassistant.config_entries import ConfigEntry
-import voluptuous as vol
 
-from homeassistant.components.binary_sensor import BinarySensorEntity, BinarySensorDeviceClass
+from homeassistant.components.binary_sensor import BinarySensorEntity
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.const import CONF_NAME
 from homeassistant.helpers.entity_platform import AddEntitiesCallback

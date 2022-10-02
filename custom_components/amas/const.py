@@ -4,10 +4,14 @@ from __future__ import annotations
 from collections.abc import Callable
 from dataclasses import dataclass
 from homeassistant.exceptions import ConfigEntryAuthFailed, ConfigEntryNotReady
-import json, requests, logging
+import json, logging
+import aiohttp
+import async_timeout
 from datetime import timedelta
 from typing import Any
+from homeassistant.helpers.aiohttp_client import async_create_clientsession
 from homeassistant.components.sensor import SensorEntityDescription
+from homeassistant.core import HomeAssistant
 from homeassistant.components.binary_sensor import (
     BinarySensorDeviceClass,
     BinarySensorEntityDescription,
@@ -29,9 +33,12 @@ class AMASHub:
 
     """
 
-    def __init__(self, host: str) -> None:
+    def __init__(self, host: str, hass: HomeAssistant, session: aiohttp.ClientSession) -> None:
         """Initialize."""
         self.host = host
+        self.session = session
+        self.hass = hass
+        self.loop = hass.loop
         self.api_key = None
         self.device_info = None
         self.device_photo = None
@@ -39,10 +46,12 @@ class AMASHub:
     async def authenticate(self, api_key: str) -> bool:
         """Test if we can authenticate with the host."""
         url = 'http://' + self.host + '/alerts'
-        headers = {'User-Agent': 'hass', 'Accept': '*/*', 'x-api-key': api_key}
+        headers = {'Accept': '*/*', 'x-api-key': api_key}
         try:
-            r = requests.get(url, headers=headers)
-            if r.status_code == 200:
+            # r = requests.get(url, headers=headers)
+            async with async_timeout.timeout(10, loop=self.loop):
+                response = await self.session.get(url, headers=headers)
+            if response.status_code == 200:
                 self.api_key = api_key
                 return True
             else:
@@ -51,14 +60,17 @@ class AMASHub:
             _LOGGER.warning("Failed to connect: %s", e)
             raise ConfigEntryNotReady
     
-    def get_data(self) -> json:
+    async def get_data(self) -> json:
         """Get device information."""
         url = 'http://' + self.host + '/data'
-        headers = {'User-Agent': 'hass', 'Accept': '*/*', 'x-api-key': self.api_key}
+        headers = {'Accept': '*/*', 'x-api-key': self.api_key}
         try:
-            r = requests.get(url, headers=headers)
-            if r.status_code == 200:
-                device_info = json.loads(r.content.decode())['state']['reported']
+            # r = requests.get(url, headers=headers)
+            async with async_timeout.timeout(10, loop=self.loop):
+                response = await self.session.get(url, headers=headers)
+            if response.status_code == 200:
+                device_info = await response.json()
+                device_info = device_info['state']['reported']
                 return device_info
             else:
                 _LOGGER.fatal("Invalid authentication!")
@@ -67,46 +79,17 @@ class AMASHub:
             _LOGGER.warning("Failed to connect: %s", e)
             raise ConfigEntryNotReady
     
-    def get_alerts(self) -> json:
+    async def get_alerts(self) -> json:
         """Get device alerts."""
         url = 'http://' + self.host + '/alerts'
-        headers = {'User-Agent': 'hass', 'Accept': '*/*', 'x-api-key': self.api_key}
+        headers = {'Accept': '*/*', 'x-api-key': self.api_key}
         try:
-            r = requests.get(url, headers=headers)
-            if r.status_code == 200:
-                device_alerts = json.loads(r.content.decode())['state']['reported']
-                return device_alerts
-            else:
-                _LOGGER.fatal("Invalid authentication!")
-                raise ConfigEntryAuthFailed
-        except Exception as e:
-            _LOGGER.warning("Failed to connect: %s", e)
-            raise ConfigEntryNotReady
-
-    def get_photo(self) -> requests:
-        """Get device photo."""
-        url = 'http://' + self.host + '/photo'
-        headers = {'User-Agent': 'hass', 'Accept': '*/*', 'x-api-key': self.api_key}
-        try:
-            r = requests.get(url, headers=headers)
-            if r.status_code == 200:
-                return r
-            else:
-                _LOGGER.fatal("Invalid authentication!")
-                raise ConfigEntryAuthFailed
-        except Exception as e:
-            _LOGGER.warning("Failed to connect: %s", e)
-            raise ConfigEntryNotReady
-
-    def control_device(self, state: json) -> json:
-        """Control device."""
-        url = 'http://' + self.host + '/configure'
-        headers = {'User-Agent': 'hass', 'Accept': '*/*', 'x-api-key': self.api_key}
-        body = {'state': {'desired': state}}
-        try:
-            r = requests.post(url, headers=headers, body=body)
-            if r.status_code == 200:
-                device_info = json.loads(r.content.decode())['state']['reported']
+            # r = requests.get(url, headers=headers)
+            async with async_timeout.timeout(10, loop=self.loop):
+                response = await self.session.get(url, headers=headers)
+            if response.status_code == 200:
+                device_info = await response.json()
+                device_info = device_info['state']['reported']
                 return device_info
             else:
                 _LOGGER.fatal("Invalid authentication!")
@@ -115,21 +98,64 @@ class AMASHub:
             _LOGGER.warning("Failed to connect: %s", e)
             raise ConfigEntryNotReady
 
-    def update_info(self) -> None:
+    async def get_photo(self):
+        """Get device photo."""
+        url = 'http://' + self.host + '/photo'
+        headers = {'Accept': '*/*', 'x-api-key': self.api_key}
+        try:
+            # r = requests.get(url, headers=headers)
+            async with async_timeout.timeout(10, loop=self.loop):
+                response = await self.session.get(url, headers=headers)
+            if response.status_code == 200:
+                return response
+            else:
+                _LOGGER.fatal("Invalid authentication!")
+                raise ConfigEntryAuthFailed
+        except Exception as e:
+            _LOGGER.warning("Failed to connect: %s", e)
+            raise ConfigEntryNotReady
+
+    async def control_device(self, state: json) -> json:
+        """Control device."""
+        url = 'http://' + self.host + '/configure'
+        headers = {'Accept': '*/*', 'x-api-key': self.api_key}
+        body = {'state': {'desired': state}}
+        try:
+            # r = requests.post(url, headers=headers, body=body)
+            async with async_timeout.timeout(10, loop=self.loop):
+                response = await self.session.post(url, headers=headers, body=body)
+            if response.status_code == 200:
+                device_info = await response.json()
+                device_info = device_info['state']['reported']
+                return device_info
+            else:
+                _LOGGER.fatal("Invalid authentication!")
+                raise ConfigEntryAuthFailed
+        except Exception as e:
+            _LOGGER.warning("Failed to connect: %s", e)
+            raise ConfigEntryNotReady
+
+    async def update_info(self) -> None:
         """Update device information."""
         url = 'http://' + self.host + '/data'
-        headers = {'User-Agent': 'hass', 'Accept': '*/*', 'x-api-key': self.api_key}
+        headers = {'Accept': '*/*', 'x-api-key': self.api_key}
         try:
-            r = requests.get(url, headers=headers)
-            if r.status_code == 200:
-                device_info = json.loads(r.content.decode())['state']['reported']
+            # r = requests.get(url, headers=headers)
+            async with async_timeout.timeout(10, loop=self.loop):
+                response = await self.session.get(url, headers=headers)
+            if response.status_code == 200:
+                device_info = await response.json()
+                device_info = device_info['state']['reported']
             else:
                 _LOGGER.fatal("Invalid authentication!")
                 raise ConfigEntryAuthFailed
             url = 'http://' + self.host + '/alerts'
-            r = requests.get(url, headers=headers)
-            if r.status_code == 200:
-                device_alerts = json.loads(r.content.decode())['state']['reported']
+            # r = requests.get(url, headers=headers)
+            async with async_timeout.timeout(10, loop=self.loop):
+                response = await self.session.get(url, headers=headers)
+            if response.status_code == 200:
+                device_alerts = await response.json()
+                device_alerts = device_alerts['state']['reported']
             else:
                 _LOGGER.fatal("Invalid authentication!")
                 raise ConfigEntryAuthFailed
@@ -139,14 +165,15 @@ class AMASHub:
             _LOGGER.warning("Failed to connect: %s", e)
             raise ConfigEntryNotReady
 
-    def update_photo(self) -> None:
+    async def update_photo(self) -> None:
         """Update device photo."""
         url = 'http://' + self.host + '/photo'
-        headers = {'User-Agent': 'hass', 'Accept': '*/*', 'x-api-key': self.api_key}
+        headers = {'Accept': '*/*', 'x-api-key': self.api_key}
         try:
-            r = requests.get(url, headers=headers)
-            if r.status_code == 200:
-                self.device_photo = r
+            async with async_timeout.timeout(10, loop=self.loop):
+                response = await self.session.get(url, headers=headers)
+            if response.status_code == 200:
+                self.device_photo = response
             else:
                 _LOGGER.fatal("Invalid authentication!")
                 raise ConfigEntryAuthFailed

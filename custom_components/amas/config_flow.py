@@ -27,8 +27,6 @@ from .const import (
     MIN_TIME_BETWEEN_UPDATES
 )
 
-import requests, json
-
 _LOGGER = logging.getLogger(__name__)
 
 
