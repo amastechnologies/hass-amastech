@@ -39,8 +39,8 @@ class AMASHub:
         self.session = session
         self.hass = hass
         self.loop = hass.loop
-        self.api_key = None
-        self.device_info = None
+        self.api_key = ''
+        self.device_info = {}
         self.device_photo = None
 
     async def authenticate(self, api_key: str) -> bool:
@@ -71,10 +71,14 @@ class AMASHub:
             if response.status == 200:
                 device_info = await response.json()
                 device_info = device_info['state']['reported']
+                self.device_info.update(device_info)
                 return device_info
-            else:
+            elif response.status == 401:
                 _LOGGER.fatal("Invalid authentication!")
                 raise ConfigEntryAuthFailed
+            else:
+                _LOGGER.critical("Status code: "+str(response.status))
+                raise ConfigEntryNotReady
         except Exception as e:
             _LOGGER.warning("Failed to connect: %s", e)
             raise ConfigEntryNotReady
@@ -91,9 +95,12 @@ class AMASHub:
                 device_info = await response.json()
                 device_info = device_info['state']['reported']
                 return device_info
-            else:
+            elif response.status == 401:
                 _LOGGER.fatal("Invalid authentication!")
                 raise ConfigEntryAuthFailed
+            else:
+                _LOGGER.critical("Status code: "+str(response.status))
+                raise ConfigEntryNotReady
         except Exception as e:
             _LOGGER.warning("Failed to connect: %s", e)
             raise ConfigEntryNotReady
@@ -108,9 +115,12 @@ class AMASHub:
                 response = await self.session.get(url, headers=headers)
             if response.status == 200:
                 return response
-            else:
+            elif response.status == 401:
                 _LOGGER.fatal("Invalid authentication!")
                 raise ConfigEntryAuthFailed
+            else:
+                _LOGGER.critical("Status code: "+str(response.status))
+                raise ConfigEntryNotReady
         except Exception as e:
             _LOGGER.warning("Failed to connect: %s", e)
             raise ConfigEntryNotReady
@@ -128,9 +138,12 @@ class AMASHub:
                 device_info = await response.json()
                 device_info = device_info['state']['reported']
                 return device_info
-            else:
+            elif response.status == 401:
                 _LOGGER.fatal("Invalid authentication!")
                 raise ConfigEntryAuthFailed
+            else:
+                _LOGGER.critical("Status code: "+str(response.status))
+                raise ConfigEntryNotReady
         except Exception as e:
             _LOGGER.warning("Failed to connect: %s", e)
             raise ConfigEntryNotReady
@@ -146,9 +159,12 @@ class AMASHub:
             if response.status == 200:
                 device_info = await response.json()
                 device_info = device_info['state']['reported']
-            else:
+            elif response.status == 401:
                 _LOGGER.fatal("Invalid authentication!")
                 raise ConfigEntryAuthFailed
+            else:
+                _LOGGER.critical("Status code: "+str(response.status))
+                raise ConfigEntryNotReady
             url = 'http://' + self.host + '/alerts'
             # r = requests.get(url, headers=headers)
             async with async_timeout.timeout(10):
@@ -156,9 +172,12 @@ class AMASHub:
             if response.status == 200:
                 device_alerts = await response.json()
                 device_alerts = device_alerts['state']['reported']
-            else:
+            elif response.status == 401:
                 _LOGGER.fatal("Invalid authentication!")
                 raise ConfigEntryAuthFailed
+            else:
+                _LOGGER.critical("Status code: "+str(response.status))
+                raise ConfigEntryNotReady
             device_info.update(device_alerts)
             self.device_info = device_info
         except Exception as e:
@@ -174,9 +193,12 @@ class AMASHub:
                 response = await self.session.get(url, headers=headers)
             if response.status == 200:
                 self.device_photo = response
-            else:
+            elif response.status == 401:
                 _LOGGER.fatal("Invalid authentication!")
                 raise ConfigEntryAuthFailed
+            else:
+                _LOGGER.critical("Status code: "+str(response.status))
+                raise ConfigEntryNotReady
         except Exception as e:
             _LOGGER.warning("Failed to connect: %s", e)
             raise ConfigEntryNotReady
