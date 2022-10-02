@@ -64,6 +64,7 @@ class AMASCirculationSwitch(AMASTechEntity, SwitchEntity):
     async def async_turn_on(self, **kwargs: Any) -> None:
         """Turn on the service."""
         try:
+            _LOGGER.debug("Sending circulation on.")
             await self.api.control_device({'pump': {'powered': True}})
             await self.async_update()
         except Exception as err:
@@ -72,6 +73,7 @@ class AMASCirculationSwitch(AMASTechEntity, SwitchEntity):
     async def async_turn_off(self, **kwargs: Any) -> None:
         """Turn off the service."""
         try:
+            _LOGGER.debug("Sending circulation off.")
             await self.api.control_device({'pump': {'powered': False}})
             await self.async_update()
         except Exception as err:
@@ -100,6 +102,7 @@ class AMASDrainSwitch(AMASTechEntity, SwitchEntity):
     async def async_turn_on(self, **kwargs: Any) -> None:
         """Turn on the service."""
         try:
+            _LOGGER.debug("Sending drain on.")
             await self.api.control_device({'pump': {'drain': True}})
             await self.async_update()
         except Exception as err:
@@ -108,6 +111,7 @@ class AMASDrainSwitch(AMASTechEntity, SwitchEntity):
     async def async_turn_off(self, **kwargs: Any) -> None:
         """Turn off the service."""
         try:
+            _LOGGER.debug("Sending drain off.")
             await self.api.control_device({'pump': {'drain': False}})
             await self.async_update()
         except Exception as err:

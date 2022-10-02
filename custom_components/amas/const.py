@@ -67,9 +67,11 @@ class AMASHub:
             # r = requests.get(url, headers=headers)
             async with async_timeout.timeout(10):
                 response = await self.session.get(url, headers=headers)
+                _LOGGER.debug("Reponse content: %s", str(response.content))
             if response.status == 200:
                 device_info = await response.json()
                 device_info = device_info['state']['reported']
+                _LOGGER.debug("Device info: %s", str(device_info))
                 self.device_info.update(device_info)
                 return device_info
             elif response.status == 401:
@@ -90,9 +92,11 @@ class AMASHub:
             # r = requests.get(url, headers=headers)
             async with async_timeout.timeout(10):
                 response = await self.session.get(url, headers=headers)
+                _LOGGER.info("Reponse content: %s", str(response.content))
             if response.status == 200:
                 device_info = await response.json()
                 device_info = device_info['state']['reported']
+                _LOGGER.debug("Device info: %s", str(device_info))
                 return device_info
             elif response.status == 401:
                 _LOGGER.fatal("Invalid authentication!")
@@ -119,6 +123,7 @@ class AMASHub:
                 raise ConfigEntryAuthFailed
             elif response.status == 500:
                 self.device_photo = response
+                _LOGGER.error("Failed to get image: %s", str(response.content))
             else:
                 _LOGGER.critical("Status code: "+str(response.status))
                 raise ConfigEntryNotReady
@@ -135,10 +140,12 @@ class AMASHub:
             # r = requests.post(url, headers=headers, body=body)
             async with async_timeout.timeout(10):
                 response = await self.session.post(url, headers=headers, body=body)
+                _LOGGER.debug("Response content: %s", str(response.content))
             if response.status == 200:
                 device_info = await response.json()
                 device_info = device_info['state']['reported']
                 self.device_info = device_info
+                _LOGGER.debug("Device info: %s", str(response.content))
             elif response.status == 401:
                 _LOGGER.fatal("Invalid authentication!")
                 raise ConfigEntryAuthFailed
@@ -157,9 +164,11 @@ class AMASHub:
             # r = requests.get(url, headers=headers)
             async with async_timeout.timeout(10):
                 response = await self.session.get(url, headers=headers)
+                _LOGGER.debug("Reponse content: %s", str(response.content))
             if response.status == 200:
                 device_info = await response.json()
                 device_info = device_info['state']['reported']
+                _LOGGER.debug("Device info: %s", str(device_info))
             elif response.status == 401:
                 _LOGGER.fatal("Invalid authentication!")
                 raise ConfigEntryAuthFailed
@@ -170,9 +179,11 @@ class AMASHub:
             # r = requests.get(url, headers=headers)
             async with async_timeout.timeout(10):
                 response = await self.session.get(url, headers=headers)
+                _LOGGER.debug("Resonse content: %s", str(response.content))
             if response.status == 200:
                 device_alerts = await response.json()
                 device_alerts = device_alerts['state']['reported']
+                _LOGGER.debug("Device alerts: %s", str(device_alerts))
             elif response.status == 401:
                 _LOGGER.fatal("Invalid authentication!")
                 raise ConfigEntryAuthFailed
