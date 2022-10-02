@@ -15,6 +15,7 @@ from homeassistant.const import (
     Platform,
 )
 from homeassistant.core import HomeAssistant, callback
+from homeassistant.helpers.aiohttp_client import async_create_clientsession
 from homeassistant.exceptions import ConfigEntryAuthFailed, ConfigEntryNotReady
 from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers.entity import DeviceInfo
@@ -79,7 +80,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     host = entry.data[CONF_HOST]
     api_key = entry.data[CONF_API_KEY]
     name = entry.data[CONF_NAME]
-    api = AMASHub(host)
+    api = AMASHub(host, hass, async_create_clientsession(hass))
     if await api.authenticate(api_key):
         device_info = api.get_data()
         hass.config_entries.async_update_entry(entry, unique_id='AMAS-'+str(device_info['dev_id']))

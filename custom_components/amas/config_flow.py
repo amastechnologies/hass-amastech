@@ -13,6 +13,7 @@ from homeassistant.const import (
     CONF_NAME,
     Platform,
 )
+from homeassistant.helpers.aiohttp_client import async_create_clientsession
 from homeassistant.data_entry_flow import FlowResult
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
@@ -56,7 +57,7 @@ class AMASFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
             api_key = user_input[CONF_API_KEY]
             name = user_input[CONF_NAME]
             
-            hub = AMASHub(host)
+            hub = AMASHub(host, self.hass, async_create_clientsession(self.hass))
 
             if await hub.authenticate(api_key):
                 self._config[CONF_NAME] = name
