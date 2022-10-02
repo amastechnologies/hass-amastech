@@ -278,14 +278,14 @@ BINARY_SENSOR_TYPES: tuple[AMASBinarySensorEntityDescription, ...] = (
         key="temp_alert",
         name="Temperature Alert",
         entity_registry_enabled_default=False,
-        device_class=BinarySensorDeviceClass.HEAT,
+        device_class=BinarySensorDeviceClass.PROBLEM,
         state_value=lambda api: api.device_info['temp_alert'] == 'Low' or api.device_info['temp_alert'] == 'High',
     ),
     AMASBinarySensorEntityDescription(
         key="humidity_alert",
         name="Humidity Alert",
         entity_registry_enabled_default=False,
-        device_class=BinarySensorDeviceClass.MOISTURE,
+        device_class=BinarySensorDeviceClass.PROBLEM,
         state_value=lambda api: api.device_info['humidity_alert'] == 'Low' or api.device_info['humidity_alert'] == 'High',
     ),
 )
