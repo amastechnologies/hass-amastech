@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from dataclasses import dataclass
-from homeassistant.exceptions import HomeAssistantError, ConfigEntryAuthFailed, ConfigEntryNotReady
+from homeassistant.exceptions import ConfigEntryAuthFailed, ConfigEntryNotReady
 import json, logging
 import aiohttp
 import async_timeout
@@ -165,7 +165,7 @@ class AMASHub:
                 raise ConfigEntryAuthFailed
             else:
                 _LOGGER.critical("Status code: "+str(response.status))
-                raise CannotConnect
+                raise ConfigEntryNotReady
             url = 'http://' + self.host + '/alerts'
             # r = requests.get(url, headers=headers)
             async with async_timeout.timeout(10):
@@ -175,7 +175,7 @@ class AMASHub:
                 device_alerts = device_alerts['state']['reported']
             elif response.status == 401:
                 _LOGGER.fatal("Invalid authentication!")
-                raise CannotConnect
+                raise ConfigEntryAuthFailed
             else:
                 _LOGGER.critical("Status code: "+str(response.status))
                 raise ConfigEntryNotReady
@@ -209,7 +209,7 @@ class AMASHub:
 
 @dataclass
 class AMASSensorEntityDescription(SensorEntityDescription):
-    """Describes PiHole sensor entity."""
+    """Describes AMASTech sensor entity."""
 
     icon: str = "mdi:leaf"
 
@@ -238,7 +238,7 @@ SENSOR_TYPES: tuple[AMASSensorEntityDescription, ...] = (
 
 @dataclass
 class RequiredAMASBinaryDescription:
-    """Represent the required attributes of the PiHole binary description."""
+    """Represent the required attributes of the AMASTech binary description."""
 
     state_value: Callable[[AMASHub], bool]
 
@@ -247,7 +247,7 @@ class RequiredAMASBinaryDescription:
 class AMASBinarySensorEntityDescription(
     BinarySensorEntityDescription, RequiredAMASBinaryDescription
 ):
-    """Describes PiHole binary sensor entity."""
+    """Describes AMASTech binary sensor entity."""
 
     extra_value: Callable[[AMASHub], dict[str, Any] | None] = lambda api: None
 
@@ -270,11 +270,24 @@ BINARY_SENSOR_TYPES: tuple[AMASBinarySensorEntityDescription, ...] = (
     AMASBinarySensorEntityDescription(
         key="water_alert",
         name="Water Level",
-        entity_registry_enabled_default=True,
+        entity_registry_enabled_default=False,
         device_class=BinarySensorDeviceClass.BATTERY,
-        state_value=lambda api: api.device_info['light']['status'] != 'Low',
+        state_value=lambda api: api.device_info['water_level_alert'] == 'Low',
+    ),
+    AMASBinarySensorEntityDescription(
+        key="temp_alert",
+        name="Temperature Alert",
+        entity_registry_enabled_default=False,
+        device_class=BinarySensorDeviceClass.HEAT,
+        state_value=lambda api: api.device_info['temp_alert'] == 'Low' or api.device_info['temp_alert'] == 'High',
+    ),
+    AMASBinarySensorEntityDescription(
+        key="humidity_alert",
+        name="Humidity Alert",
+        entity_registry_enabled_default=False,
+        device_class=BinarySensorDeviceClass.MOISTURE,
+        state_value=lambda api: api.device_info['humidity_alert'] == 'Low' or api.device_info['humidity_alert'] == 'High',
     ),
 )
 
-class CannotConnect(HomeAssistantError):
-    """Error to indicate we cannot connect."""
+
