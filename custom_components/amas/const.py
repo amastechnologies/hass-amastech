@@ -126,7 +126,7 @@ class AMASHub:
             _LOGGER.warning("Failed to connect: %s", e)
             raise ConfigEntryNotReady
 
-    async def control_device(self, state: json) -> None:
+    async def control_device(self, state: dict[str, Any]) -> None:
         """Control device."""
         url = 'http://' + self.host + '/configure'
         headers = {'Accept': '*/*', 'x-api-key': self.api_key}
