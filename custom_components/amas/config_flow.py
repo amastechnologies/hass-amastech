@@ -1,7 +1,6 @@
 """Config flow for amastech integration."""
 from __future__ import annotations
 
-import logging
 from typing import Any
 
 import voluptuous as vol
@@ -10,25 +9,17 @@ from homeassistant import config_entries
 from homeassistant.const import (
     CONF_API_KEY,
     CONF_HOST,
-    CONF_NAME,
-    Platform,
+    CONF_NAME
 )
 from homeassistant.helpers.aiohttp_client import async_create_clientsession
 from homeassistant.data_entry_flow import FlowResult
-from homeassistant.config_entries import ConfigEntry
-from homeassistant.core import HomeAssistant
-from homeassistant.exceptions import HomeAssistantError, ConfigEntryAuthFailed, ConfigEntryNotReady
+from homeassistant.exceptions import ConfigEntryAuthFailed
 
 from .const import (
     DOMAIN, 
     DEFAULT_NAME, 
-    AMASHub,
-    DATA_KEY_API,
-    DATA_KEY_COORDINATOR,
-    MIN_TIME_BETWEEN_UPDATES
+    AMASHub
 )
-
-_LOGGER = logging.getLogger(__name__)
 
 
 class AMASFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):

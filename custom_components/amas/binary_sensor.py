@@ -1,22 +1,14 @@
 """Support for AMASTech Sensors."""
 from __future__ import annotations
 
-import logging
 from typing import Any
-import homeassistant.helpers.config_validation as cv
 from homeassistant.config_entries import ConfigEntry
 
 from homeassistant.components.binary_sensor import BinarySensorEntity
-from homeassistant.core import HomeAssistant, callback
+from homeassistant.core import HomeAssistant
 from homeassistant.const import CONF_NAME
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
-from homeassistant.helpers.typing import ConfigType, DiscoveryInfoType
-from homeassistant.helpers.update_coordinator import (
-    CoordinatorEntity,
-    DataUpdateCoordinator,
-    UpdateFailed,
-)
-
+from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 
 from .const import (
     DOMAIN as AMAS_DOMAIN,
@@ -27,8 +19,6 @@ from .const import (
     AMASBinarySensorEntityDescription
     )
 from . import AMASTechEntity
-
-_LOGGER = logging.getLogger(__name__)
 
 
 async def async_setup_entry(
@@ -79,5 +69,5 @@ class AMASBinarySensor(AMASTechEntity, BinarySensorEntity):
 
     @property
     def extra_state_attributes(self) -> dict[str, Any] | None:
-        """Return the state attributes of the Pi-hole."""
+        """Return the state attributes of the entity."""
         return self.entity_description.extra_value(self.api)
