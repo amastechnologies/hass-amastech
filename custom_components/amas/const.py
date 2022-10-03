@@ -282,7 +282,7 @@ BINARY_SENSOR_TYPES: tuple[AMASBinarySensorEntityDescription, ...] = (
     ),
     AMASBinarySensorEntityDescription(
         key="water_alert",
-        name="Water Level",
+        name="Water Alert",
         entity_registry_enabled_default=False,
         device_class=BinarySensorDeviceClass.BATTERY,
         state_value=lambda api: api.device_info['water_level_alert'] == 'Low',
