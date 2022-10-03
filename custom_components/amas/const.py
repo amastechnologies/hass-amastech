@@ -245,7 +245,6 @@ SENSOR_TYPES: tuple[AMASSensorEntityDescription, ...] = (
         name="Water Level",
         native_unit_of_measurement=PERCENTAGE,
         icon="mdi:waves-arrow-up",
-        device_class=SensorDeviceClass.BATTERY,
     ),
 )
 
