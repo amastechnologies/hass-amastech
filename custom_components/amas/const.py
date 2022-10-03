@@ -9,7 +9,7 @@ import aiohttp
 import async_timeout
 from datetime import timedelta
 from typing import Any
-from homeassistant.components.sensor import SensorEntityDescription
+from homeassistant.components.sensor import SensorEntityDescription, SensorDeviceClass
 from homeassistant.core import HomeAssistant
 from homeassistant.components.binary_sensor import (
     BinarySensorDeviceClass,
@@ -231,18 +231,21 @@ SENSOR_TYPES: tuple[AMASSensorEntityDescription, ...] = (
         name="Ambient Temperature",
         native_unit_of_measurement=TEMP_CELSIUS,
         icon="mdi:thermometer",
+        device_class=SensorDeviceClass.TEMPERATURE,
     ),
     AMASSensorEntityDescription(
         key="humidity",
         name="Relative Humidity",
         native_unit_of_measurement=PERCENTAGE,
         icon="mdi:water-percent",
+        device_class=SensorDeviceClass.HUMIDITY,
     ),
     AMASSensorEntityDescription(
         key="water_level",
         name="Water Level",
         native_unit_of_measurement=PERCENTAGE,
         icon="mdi:waves-arrow-up",
+        device_class=SensorDeviceClass.BATTERY,
     ),
 )
 
