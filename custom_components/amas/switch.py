@@ -36,6 +36,12 @@ async def async_setup_entry(
             amas_data[DATA_KEY_COORDINATOR],
             name+' Drain',
             entry.entry_id,
+        ),
+        AMASLightOverrideSwitch(
+            amas_data[DATA_KEY_API],
+            amas_data[DATA_KEY_COORDINATOR],
+            name+' Light Override',
+            entry.entry_id,
         )
     ]
     async_add_entities(switches, True)
@@ -113,6 +119,44 @@ class AMASDrainSwitch(AMASTechEntity, SwitchEntity):
         try:
             _LOGGER.debug("Sending drain off.")
             await self.api.control_device({'pump': {'drain': False}})
+            await self.async_update()
+        except Exception as err:
+            _LOGGER.error("Unable to turn off drain: %s", err)
+
+class AMASLightOverrideSwitch(AMASTechEntity, SwitchEntity):
+    """Representation of a AMAS switch."""
+
+    _attr_icon = "mdi:lightbulb-alert-outline"
+
+    @property
+    def name(self) -> str:
+        """Return the name of the switch."""
+        return self._name
+
+    @property
+    def unique_id(self) -> str:
+        """Return the unique id of the switch."""
+        return f"{self._device_unique_id}/LightOverride"
+
+    @property
+    def is_on(self) -> bool:
+        """Return if the service is on."""
+        return bool(self.api.device_info["light"]['status'])  # type: ignore[no-any-return]
+
+    async def async_turn_on(self, **kwargs: Any) -> None:
+        """Turn on the service."""
+        try:
+            _LOGGER.debug("Sending drain on.")
+            await self.api.control_device({'light': {'override': 1}})
+            await self.async_update()
+        except Exception as err:
+            _LOGGER.error("Unable to turn on drain: %s", err)
+
+    async def async_turn_off(self, **kwargs: Any) -> None:
+        """Turn off the service."""
+        try:
+            _LOGGER.debug("Sending drain off.")
+            await self.api.control_device({'light': {'override': 0}})
             await self.async_update()
         except Exception as err:
             _LOGGER.error("Unable to turn off drain: %s", err)
