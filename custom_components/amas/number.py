@@ -8,7 +8,7 @@ from typing import Any
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_NAME
 
-from homeassistant.components.number import NumberEntity
+from homeassistant.components.number import NumberEntity, NumberMode
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
@@ -64,6 +64,7 @@ class AMASNumber(AMASTechEntity, NumberEntity):
 
         self._attr_name = f"{_name} {description.name}"
         self._attr_unique_id = f"{self._device_unique_id}/{description.name}"
+        self._attr_mode = NumberMode.BOX
 
     @property
     def native_value(self) -> Any:
