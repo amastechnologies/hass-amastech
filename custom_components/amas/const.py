@@ -232,7 +232,6 @@ NUMBER_TYPES: tuple[AMASNumberEntityDescription, ...] = (
         icon="mdi:lightbulb-on",
         native_max_value=2400,
         native_min_value=0,
-        mode='box',
     ),
     AMASNumberEntityDescription(
         key="light_off",
@@ -240,7 +239,6 @@ NUMBER_TYPES: tuple[AMASNumberEntityDescription, ...] = (
         icon="mdi:lightbulb-off-outline",
         native_max_value=2400,
         native_min_value=0,
-        mode='box',
     ),
 )
 
