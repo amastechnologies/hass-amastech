@@ -10,6 +10,7 @@ import async_timeout
 from datetime import timedelta
 from typing import Any
 from homeassistant.components.sensor import SensorEntityDescription, SensorDeviceClass
+from homeassistant.components.number import NumberEntityDescription
 from homeassistant.core import HomeAssistant
 from homeassistant.components.binary_sensor import (
     BinarySensorDeviceClass,
@@ -216,6 +217,32 @@ class AMASHub:
         except Exception as e:
             _LOGGER.warning("Failed to connect: %s", e)
             raise ConfigEntryNotReady
+
+@dataclass
+class AMASNumberEntityDescription(NumberEntityDescription):
+    """Describes AMASTech number entity."""
+
+    icon: str = "mdi:leaf"
+
+
+NUMBER_TYPES: tuple[AMASNumberEntityDescription, ...] = (
+    AMASNumberEntityDescription(
+        key="light_on",
+        name="Light On",
+        icon="mdi:lightbulb-on",
+        native_max_value=2400,
+        native_min_value=0,
+        mode='box',
+    ),
+    AMASNumberEntityDescription(
+        key="light_off",
+        name="Light Off",
+        icon="mdi:lightbulb-off-outline",
+        native_max_value=2400,
+        native_min_value=0,
+        mode='box',
+    ),
+)
 
 
 @dataclass
