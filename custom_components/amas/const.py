@@ -10,7 +10,7 @@ import async_timeout
 from datetime import timedelta
 from typing import Any
 from homeassistant.components.sensor import SensorEntityDescription, SensorDeviceClass
-from homeassistant.components.number import NumberEntityDescription
+from homeassistant.components.number import NumberEntityDescription, NumberMode
 from homeassistant.core import HomeAssistant
 from homeassistant.components.binary_sensor import (
     BinarySensorDeviceClass,
@@ -232,6 +232,7 @@ NUMBER_TYPES: tuple[AMASNumberEntityDescription, ...] = (
         icon="mdi:lightbulb-on",
         native_max_value=2400,
         native_min_value=0,
+        mode=NumberMode.BOX,
     ),
     AMASNumberEntityDescription(
         key="light_off",
@@ -239,6 +240,7 @@ NUMBER_TYPES: tuple[AMASNumberEntityDescription, ...] = (
         icon="mdi:lightbulb-off-outline",
         native_max_value=2400,
         native_min_value=0,
+        mode=NumberMode.BOX,
     ),
 )
 
