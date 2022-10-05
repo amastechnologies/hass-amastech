@@ -135,7 +135,8 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 @callback
 def _async_platforms(entry: ConfigEntry) -> list[Platform]:
     """Return platforms to be loaded / unloaded."""
-    platforms = [Platform.SWITCH, Platform.SENSOR, Platform.BINARY_SENSOR, Platform.NUMBER]
+    # platforms = [Platform.SWITCH, Platform.SENSOR, Platform.BINARY_SENSOR, Platform.NUMBER]
+    platforms = [Platform.SWITCH, Platform.SENSOR, Platform.BINARY_SENSOR]
     return platforms
 
 
