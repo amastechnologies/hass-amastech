@@ -101,8 +101,8 @@ class AMASNumber(AMASTechEntity, NumberEntity):
         """Update the current value."""
         try:
             act_key = str(self.entity_description.key).split('_')[1]
-            _LOGGER.debug("Got local value light control " + act_key + ': ' + value)
-            value = str(value)
+            _LOGGER.debug("Got local value light control " + act_key + ': ' + str(value))
+            value = str(int(value))
             if len(value) == 1:
                 value = '000' + value
             elif len(value) == 2:
