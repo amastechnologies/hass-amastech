@@ -141,7 +141,7 @@ class AMASLightOverrideSwitch(AMASTechEntity, SwitchEntity):
     @property
     def is_on(self) -> bool:
         """Return if the service is on."""
-        return bool(self.api.device_info["light"]['status'])  # type: ignore[no-any-return]
+        return bool(self.api.device_info['light']['status']) # type: ignore[no-any-return]
 
     async def async_turn_on(self, **kwargs: Any) -> None:
         """Turn on the service."""
@@ -150,7 +150,7 @@ class AMASLightOverrideSwitch(AMASTechEntity, SwitchEntity):
             await self.api.control_device({'light': {'override': '1'}})
             await self.async_update()
         except Exception as err:
-            _LOGGER.error("Unable to turn on drain: %s", err)
+            _LOGGER.error("Unable to turn on light override: %s", err)
 
     async def async_turn_off(self, **kwargs: Any) -> None:
         """Turn off the service."""
@@ -159,4 +159,4 @@ class AMASLightOverrideSwitch(AMASTechEntity, SwitchEntity):
             await self.api.control_device({'light': {'override': '0'}})
             await self.async_update()
         except Exception as err:
-            _LOGGER.error("Unable to turn off drain: %s", err)
+            _LOGGER.error("Unable to turn off light override: %s", err)
