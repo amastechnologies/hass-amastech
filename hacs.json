@@ -1,0 +1,6 @@
+
+{
+  "name": "AMAS Tower Device Integration",
+  "iot_class": "Local Polling",
+  "render_readme": "true"
+}
