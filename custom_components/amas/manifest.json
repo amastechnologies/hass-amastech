@@ -3,11 +3,11 @@
   "name": "AMAS Tower Device",
   "config_flow": true,
   "documentation": "https://github.com/amastechnologies/hass-amastech/blob/main/README.md",
-  "requirements": [],
+  "requirements": ["cryptography", "binascii", "json"],
   "ssdp": [],
   "zeroconf": [],
   "homekit": {},
-  "dependencies": ["cryptography"],
+  "dependencies": [],
   "codeowners": [
     "@amastechnologies"
   ],
