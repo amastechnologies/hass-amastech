@@ -7,7 +7,7 @@
   "ssdp": [],
   "zeroconf": [],
   "homekit": {},
-  "dependencies": ["cryptography", "binascii", "json"],
+  "dependencies": ["cryptography"],
   "codeowners": [
     "@amastechnologies"
   ],
