@@ -17,6 +17,11 @@ from homeassistant.components.binary_sensor import (
     BinarySensorEntityDescription,
 )
 from homeassistant.const import TEMP_CELSIUS, PERCENTAGE
+from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
+from cryptography.hazmat.primitives import padding
+import os
+from binascii import a2b_base64, b2a_base64
+from json import loads, dumps
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -26,6 +31,30 @@ DEFAULT_NAME = 'AMAS Tower'
 DATA_KEY_API = 'api'
 DATA_KEY_COORDINATOR = 'coordinator'
 MIN_TIME_BETWEEN_UPDATES = timedelta(seconds=30)
+
+
+def decrypt(payload, token):
+     enc = a2b_base64(payload)
+     IV = enc[:16]
+     message = enc[16:]
+     hmm = Cipher(algorithms.AES(token), modes.CBC(IV))
+     decryptor = hmm.decryptor()
+     data = decryptor.update(message) + decryptor.finalize()
+     data = bytes((x for x in data if x >= 0x20 and x < 127))
+     data = data.decode()
+     return data
+
+def encrypt(data, token):
+    padder = padding.PKCS7(128).padder()
+    data = padder.update(data) + padder.finalize()
+    IV = os.urandom(16)
+    cipher = Cipher(algorithms.AES(token), modes.CBC(IV))
+    encryptor = cipher.encryptor()
+    ct = encryptor.update(data) + encryptor.finalize()
+    enc = IV + ct
+    enc = b2a_base64(enc).decode()
+    enc = enc.replace('\n','=')
+    return enc
 
 
 class AMASHub:
@@ -44,14 +73,17 @@ class AMASHub:
         self.device_photo = None
 
     async def authenticate(self, api_key: str) -> bool:
-        """Test if we can authenticate with the host."""
+        """Test if we can decrypt responses."""
         url = 'http://' + self.host + '/alerts'
-        headers = {'Accept': '*/*', 'x-api-key': api_key}
+        headers = {'Accept': '*/*'}
         try:
+            api_key = a2b_base64(api_key)
             # r = requests.get(url, headers=headers)
             async with async_timeout.timeout(10):
                 response = await self.session.get(url, headers=headers)
             if response.status == 200:
+                payload = await response.text()
+                alerts_dic = loads(decrypt(payload, api_key))
                 self.api_key = api_key
                 return True
             else:
@@ -63,21 +95,21 @@ class AMASHub:
     async def get_data(self) -> json:
         """Get device information."""
         url = 'http://' + self.host + '/data'
-        headers = {'Accept': '*/*', 'x-api-key': self.api_key}
+        headers = {'Accept': '*/*'}
         try:
             # r = requests.get(url, headers=headers)
             async with async_timeout.timeout(10):
                 response = await self.session.get(url, headers=headers)
                 _LOGGER.debug("Reponse content: %s", str(response.content))
             if response.status == 200:
-                device_info = await response.json()
+                device_info = await response.text()
+                try:
+                    device_info = loads(decrypt(device_info, self.api_key))
+                except: raise ConfigEntryAuthFailed
                 device_info = device_info['state']['reported']
                 _LOGGER.debug("Device info: %s", str(device_info))
                 self.device_info.update(device_info)
                 return device_info
-            elif response.status == 401:
-                _LOGGER.fatal("Invalid authentication!")
-                raise ConfigEntryAuthFailed
             else:
                 _LOGGER.critical("Status code: "+str(response.status))
                 raise ConfigEntryNotReady
@@ -95,13 +127,13 @@ class AMASHub:
                 response = await self.session.get(url, headers=headers)
                 _LOGGER.info("Reponse content: %s", str(response.content))
             if response.status == 200:
-                device_info = await response.json()
+                device_info = await response.text()
+                try:
+                    device_info = loads(decrypt(device_info, self.api_key))
+                except: raise ConfigEntryAuthFailed
                 device_info = device_info['state']['reported']
                 _LOGGER.debug("Device info: %s", str(device_info))
                 return device_info
-            elif response.status == 401:
-                _LOGGER.fatal("Invalid authentication!")
-                raise ConfigEntryAuthFailed
             else:
                 _LOGGER.critical("Status code: "+str(response.status))
                 raise ConfigEntryNotReady
@@ -135,21 +167,22 @@ class AMASHub:
     async def control_device(self, state: dict[str, Any]) -> None:
         """Control device."""
         url = 'http://' + self.host + '/configure'
-        headers = {'Accept': '*/*', 'x-api-key': self.api_key}
+        headers = {'Accept': '*/*'}
         body = {'state': {'desired': state}}
+        payload = encrypt(dumps(body).encode(), self.api_key).encode()
         try:
             # r = requests.post(url, headers=headers, body=body)
             async with async_timeout.timeout(10):
-                response = await self.session.post(url, json=body, headers=headers)
+                response = await self.session.post(url, data=payload, headers=headers)
                 _LOGGER.debug("Response content: %s", str(response.content))
             if response.status == 200:
-                device_info = await response.json()
+                device_info = await response.text()
+                try:
+                    device_info = loads(decrypt(device_info, self.api_key))
+                except: raise ConfigEntryAuthFailed
                 device_info = device_info['state']['reported']
                 self.device_info = device_info
                 _LOGGER.debug("Device info: %s", str(response.content))
-            elif response.status == 401:
-                _LOGGER.fatal("Invalid authentication!")
-                raise ConfigEntryAuthFailed
             else:
                 _LOGGER.critical("Status code: "+str(response.status))
                 raise ConfigEntryNotReady
@@ -167,12 +200,12 @@ class AMASHub:
                 response = await self.session.get(url, headers=headers)
                 _LOGGER.debug("Reponse content: %s", str(response.content))
             if response.status == 200:
-                device_info = await response.json()
+                device_info = await response.text()
+                try:
+                    device_info = loads(decrypt(device_info, self.api_key))
+                except: raise ConfigEntryAuthFailed
                 device_info = device_info['state']['reported']
                 _LOGGER.debug("Device info: %s", str(device_info))
-            elif response.status == 401:
-                _LOGGER.fatal("Invalid authentication!")
-                raise ConfigEntryAuthFailed
             else:
                 _LOGGER.critical("Status code: "+str(response.status))
                 raise ConfigEntryNotReady
@@ -182,12 +215,12 @@ class AMASHub:
                 response = await self.session.get(url, headers=headers)
                 _LOGGER.debug("Resonse content: %s", str(response.content))
             if response.status == 200:
-                device_alerts = await response.json()
+                device_alerts = await response.text()
+                try:
+                    device_alerts = loads(decrypt(device_alerts, self.api_key))
+                except: raise ConfigEntryAuthFailed
                 device_alerts = device_alerts['state']['reported']
                 _LOGGER.debug("Device alerts: %s", str(device_alerts))
-            elif response.status == 401:
-                _LOGGER.fatal("Invalid authentication!")
-                raise ConfigEntryAuthFailed
             else:
                 _LOGGER.critical("Status code: "+str(response.status))
                 raise ConfigEntryNotReady
