@@ -30,7 +30,7 @@ DOMAIN = 'amas'
 DEFAULT_NAME = 'AMAS Tower'
 DATA_KEY_API = 'api'
 DATA_KEY_COORDINATOR = 'coordinator'
-MIN_TIME_BETWEEN_UPDATES = timedelta(seconds=30)
+MIN_TIME_BETWEEN_UPDATES = timedelta(seconds=40)
 
 
 def decrypt(payload, token):
@@ -70,7 +70,6 @@ class AMASHub:
         self.loop = hass.loop
         self.api_key = ''
         self.device_info = {}
-        self.device_photo = None
 
     async def authenticate(self, api_key: str) -> bool:
         """Test if we can decrypt responses."""
@@ -141,29 +140,6 @@ class AMASHub:
             _LOGGER.warning("Failed to connect: %s", e)
             raise ConfigEntryNotReady
 
-    async def get_photo(self):
-        """Get device photo."""
-        url = 'http://' + self.host + '/photo'
-        headers = {'Accept': '*/*', 'x-api-key': self.api_key}
-        try:
-            # r = requests.get(url, headers=headers)
-            async with async_timeout.timeout(10):
-                response = await self.session.get(url, headers=headers)
-            if response.status == 200:
-                return response
-            elif response.status == 401:
-                _LOGGER.fatal("Invalid authentication!")
-                raise ConfigEntryAuthFailed
-            elif response.status == 500:
-                self.device_photo = response
-                _LOGGER.error("Failed to get image: %s", str(response.content))
-            else:
-                _LOGGER.critical("Status code: "+str(response.status))
-                raise ConfigEntryNotReady
-        except Exception as e:
-            _LOGGER.warning("Failed to connect: %s", e)
-            raise ConfigEntryNotReady
-
     async def control_device(self, state: dict[str, Any]) -> None:
         """Control device."""
         url = 'http://' + self.host + '/configure'
@@ -226,27 +202,6 @@ class AMASHub:
                 raise ConfigEntryNotReady
             device_info.update(device_alerts)
             self.device_info = device_info
-        except Exception as e:
-            _LOGGER.warning("Failed to connect: %s", e)
-            raise ConfigEntryNotReady
-
-    async def update_photo(self) -> None:
-        """Update device photo."""
-        url = 'http://' + self.host + '/photo'
-        headers = {'Accept': '*/*', 'x-api-key': self.api_key}
-        try:
-            async with async_timeout.timeout(10):
-                response = await self.session.get(url, headers=headers)
-            if response.status == 200:
-                self.device_photo = response
-            elif response.status == 401:
-                _LOGGER.fatal("Invalid authentication!")
-                raise ConfigEntryAuthFailed
-            elif response.status == 500:
-                self.device_photo = response
-            else:
-                _LOGGER.critical("Status code: "+str(response.status))
-                raise ConfigEntryNotReady
         except Exception as e:
             _LOGGER.warning("Failed to connect: %s", e)
             raise ConfigEntryNotReady
