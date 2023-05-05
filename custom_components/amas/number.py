@@ -93,6 +93,12 @@ class AMASNumber(AMASTechEntity, NumberEntity):
             converted_hour = int(converted_hour + 24)
         elif converted_hour >= 24:
             converted_hour = int(converted_hour - 24)
+        if converted_min == 59:
+            converted_min = 0
+            if converted_hour < 24:
+                converted_hour = converted_hour + 1
+        if converted_min == 29 or converted_min == 14:
+            converted_min = converted_min + 1
         converted_min = str(converted_min) if len(str(converted_min)) == 2 else '0' + str(converted_min)
         converted_hour = str(converted_hour) if len(str(converted_hour)) == 2 else '0' + str(converted_hour)
         return converted_hour + converted_min
@@ -131,6 +137,12 @@ class AMASNumber(AMASTechEntity, NumberEntity):
                 converted_hour = int(converted_hour + 24)
             elif converted_hour >= 24:
                 converted_hour = int(converted_hour - 24)
+            if converted_min == 59:
+                converted_min = 0
+                if converted_hour < 24:
+                    converted_hour = converted_hour + 1
+            if converted_min == 29 or converted_min == 14:
+                converted_min = converted_min + 1
             converted_min = str(converted_min) if len(str(converted_min)) == 2 else '0' + str(converted_min)
             converted_hour = str(converted_hour) if len(str(converted_hour)) == 2 else '0' + str(converted_hour)
             military = converted_hour + converted_min
