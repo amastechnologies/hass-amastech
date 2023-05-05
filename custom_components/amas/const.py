@@ -27,10 +27,10 @@ _LOGGER = logging.getLogger(__name__)
 
 
 DOMAIN = 'amas'
-DEFAULT_NAME = 'AMAS Tower'
+DEFAULT_NAME = 'AMAS'
 DATA_KEY_API = 'api'
 DATA_KEY_COORDINATOR = 'coordinator'
-MIN_TIME_BETWEEN_UPDATES = timedelta(seconds=40)
+MIN_TIME_BETWEEN_UPDATES = timedelta(seconds=30)
 
 
 def decrypt(payload, token):
@@ -82,6 +82,7 @@ class AMASHub:
                 response = await self.session.get(url, headers=headers)
             if response.status == 200:
                 payload = await response.text()
+                _LOGGER.debug("Reponse content: %s", payload)
                 alerts_dic = loads(decrypt(payload, api_key))
                 self.api_key = api_key
                 return True
@@ -102,6 +103,7 @@ class AMASHub:
                 _LOGGER.debug("Reponse content: %s", str(response.content))
             if response.status == 200:
                 device_info = await response.text()
+                _LOGGER.debug("Reponse content: %s", device_info)
                 try:
                     device_info = loads(decrypt(device_info, self.api_key))
                 except: raise ConfigEntryAuthFailed
@@ -119,7 +121,7 @@ class AMASHub:
     async def get_alerts(self) -> json:
         """Get device alerts."""
         url = 'http://' + self.host + '/alerts'
-        headers = {'Accept': '*/*', 'x-api-key': self.api_key}
+        headers = {'Accept': '*/*'}
         try:
             # r = requests.get(url, headers=headers)
             async with async_timeout.timeout(10):
@@ -127,6 +129,7 @@ class AMASHub:
                 _LOGGER.info("Reponse content: %s", str(response.content))
             if response.status == 200:
                 device_info = await response.text()
+                _LOGGER.debug("Reponse content: %s", device_info)
                 try:
                     device_info = loads(decrypt(device_info, self.api_key))
                 except: raise ConfigEntryAuthFailed
@@ -153,6 +156,7 @@ class AMASHub:
                 _LOGGER.debug("Response content: %s", str(response.content))
             if response.status == 200:
                 device_info = await response.text()
+                _LOGGER.debug("Reponse content: %s", device_info)
                 try:
                     device_info = loads(decrypt(device_info, self.api_key))
                 except: raise ConfigEntryAuthFailed
@@ -169,7 +173,7 @@ class AMASHub:
     async def update_info(self) -> None:
         """Update device information."""
         url = 'http://' + self.host + '/data'
-        headers = {'Accept': '*/*', 'x-api-key': self.api_key}
+        headers = {'Accept': '*/*'}
         try:
             # r = requests.get(url, headers=headers)
             async with async_timeout.timeout(10):
