@@ -3,7 +3,7 @@
   "name": "AMAS Tower Device",
   "config_flow": true,
   "documentation": "https://github.com/amastechnologies/hass-amastech/blob/main/README.md",
-  "requirements": ["cryptography", "binascii", "json"],
+  "requirements": [],
   "ssdp": [],
   "zeroconf": [],
   "homekit": {},
