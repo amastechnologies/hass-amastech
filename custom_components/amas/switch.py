@@ -72,6 +72,7 @@ class AMASCirculationSwitch(AMASTechEntity, SwitchEntity):
         try:
             _LOGGER.debug("Sending circulation on.")
             await self.api.control_device({'pump': {'powered': True}})
+            await self.async_update()
         except Exception as err:
             _LOGGER.error("Unable to turn on circulation: %s", err)
 
@@ -80,6 +81,7 @@ class AMASCirculationSwitch(AMASTechEntity, SwitchEntity):
         try:
             _LOGGER.debug("Sending circulation off.")
             await self.api.control_device({'pump': {'powered': False}})
+            await self.async_update()
         except Exception as err:
             _LOGGER.error("Unable to turn off circulation: %s", err)
 
@@ -108,6 +110,7 @@ class AMASDrainSwitch(AMASTechEntity, SwitchEntity):
         try:
             _LOGGER.debug("Sending drain on.")
             await self.api.control_device({'pump': {'drain': True}})
+            await self.async_update()
         except Exception as err:
             _LOGGER.error("Unable to turn on drain: %s", err)
 
@@ -116,6 +119,7 @@ class AMASDrainSwitch(AMASTechEntity, SwitchEntity):
         try:
             _LOGGER.debug("Sending drain off.")
             await self.api.control_device({'pump': {'drain': False}})
+            await self.async_update()
         except Exception as err:
             _LOGGER.error("Unable to turn off drain: %s", err)
 
@@ -142,15 +146,17 @@ class AMASLightOverrideSwitch(AMASTechEntity, SwitchEntity):
     async def async_turn_on(self, **kwargs: Any) -> None:
         """Turn on the service."""
         try:
-            _LOGGER.debug("Sending light override on.")
+            _LOGGER.debug("Sending drain on.")
             await self.api.control_device({'light': {'override': '1'}})
+            await self.async_update()
         except Exception as err:
             _LOGGER.error("Unable to turn on light override: %s", err)
 
     async def async_turn_off(self, **kwargs: Any) -> None:
         """Turn off the service."""
         try:
-            _LOGGER.debug("Sending light override off.")
+            _LOGGER.debug("Sending drain off.")
             await self.api.control_device({'light': {'override': '0'}})
+            await self.async_update()
         except Exception as err:
             _LOGGER.error("Unable to turn off light override: %s", err)

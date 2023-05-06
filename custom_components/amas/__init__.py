@@ -32,7 +32,7 @@ from .const import (
     AMASHub,
     DATA_KEY_API,
     DATA_KEY_COORDINATOR,
-    DATA_KEY_WS
+    MIN_TIME_BETWEEN_UPDATES
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -81,26 +81,41 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     name = entry.data[CONF_NAME]
     api = AMASHub(host, hass, async_create_clientsession(hass))
     if await api.authenticate(api_key):
-        device_info = api.device_info
+        device_info = await api.get_data()
         hass.config_entries.async_update_entry(entry, unique_id=('AMAS-'+str(device_info['dev_id'])))
-    else:
-        # Raising ConfigEntryAuthFailed will cancel future updates
-        # and start a config flow with SOURCE_REAUTH (async_step_reauth)
-        raise ConfigEntryAuthFailed
     
     # TODO 3. Store an API object for your platforms to access
     # hass.data[DOMAIN][entry.entry_id] = MyApi(...)
     
+    async def async_update_data() -> None:
+        """Fetch data from API endpoint.
+
+        """
+        try:
+            # Note: asyncio.TimeoutError and aiohttp.ClientError are already
+            # handled by the data update coordinator.
+            async with async_timeout.timeout(10):
+                await api.update_info()
+        except ConfigEntryAuthFailed as err:
+            # Raising ConfigEntryAuthFailed will cancel future updates
+            # and start a config flow with SOURCE_REAUTH (async_step_reauth)
+            raise ConfigEntryAuthFailed from err
+        except ConfigEntryNotReady as err:
+            raise UpdateFailed(f"Error communicating with API: {err}")
+
     coordinator = DataUpdateCoordinator(
         hass,
         _LOGGER,
         name=name,
+        update_method=async_update_data,
+        update_interval=MIN_TIME_BETWEEN_UPDATES,
     )
+
     hass.data[DOMAIN][entry.entry_id] = {
         DATA_KEY_API: api,
-        DATA_KEY_COORDINATOR: coordinator
+        DATA_KEY_COORDINATOR: coordinator,
         }
-    hass.async_create_task(api.update_info(coordinator))
+
     await hass.config_entries.async_forward_entry_setups(entry, _async_platforms(entry))
 
     return True
@@ -143,10 +158,11 @@ class AMASTechEntity(CoordinatorEntity):
     @property
     def device_info(self) -> DeviceInfo:
         """Return the device information of the entity."""
+        config_url = f"http://{self.api.host}/data"
         
         return DeviceInfo(
             identifiers={(DOMAIN, self._device_unique_id)},
             name=self._name,
             manufacturer="AMAS Technologies LLC",
-            sw_version=self.api.device_info['state']['reported']['firmware_version']
+            configuration_url=config_url,
         )

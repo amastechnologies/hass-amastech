@@ -6,12 +6,11 @@
   "requirements": [],
   "ssdp": [],
   "zeroconf": [],
-  "integration_type": "hub",
   "homekit": {},
   "dependencies": [],
   "codeowners": [
     "@amastechnologies"
   ],
-  "iot_class": "local_push",
-  "version": "0.3.0"
+  "iot_class": "local_polling",
+  "version": "0.2.1"
 }
