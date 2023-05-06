@@ -19,7 +19,7 @@ from homeassistant.components.binary_sensor import (
 from homeassistant.const import TEMP_CELSIUS, PERCENTAGE
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 from cryptography.hazmat.primitives import padding
-import os
+import os, time
 from binascii import a2b_base64, b2a_base64
 from json import loads, dumps
 
@@ -30,7 +30,7 @@ DOMAIN = 'amas'
 DEFAULT_NAME = 'AMAS'
 DATA_KEY_API = 'api'
 DATA_KEY_COORDINATOR = 'coordinator'
-MIN_TIME_BETWEEN_UPDATES = timedelta(seconds=30)
+MIN_TIME_BETWEEN_UPDATES = timedelta(seconds=2)
 
 
 def decrypt(payload, token):
@@ -70,75 +70,28 @@ class AMASHub:
         self.loop = hass.loop
         self.api_key = ''
         self.device_info = {}
+        self.last_update = 0
 
     async def authenticate(self, api_key: str) -> bool:
         """Test if we can decrypt responses."""
-        url = 'http://' + self.host + '/alerts'
+        url = 'http://' + self.host + '/configure'
         headers = {'Accept': '*/*'}
         try:
             api_key = a2b_base64(api_key)
+            body=encrypt(dumps({'state': {'desired': {}}}).encode(), api_key)
             # r = requests.get(url, headers=headers)
             async with async_timeout.timeout(10):
-                response = await self.session.get(url, headers=headers)
+                response = await self.session.post(url, headers=headers, data=body)
             if response.status == 200:
                 payload = await response.text()
                 _LOGGER.debug("Reponse content: %s", payload)
-                alerts_dic = loads(decrypt(payload, api_key))
+                device_info = loads(decrypt(payload, api_key))
                 self.api_key = api_key
+                self.device_info = device_info
+                self.last_update = time.time()
                 return True
             else:
                 return False
-        except Exception as e:
-            _LOGGER.warning("Failed to connect: %s", e)
-            raise ConfigEntryNotReady
-    
-    async def get_data(self) -> json:
-        """Get device information."""
-        url = 'http://' + self.host + '/data'
-        headers = {'Accept': '*/*'}
-        try:
-            # r = requests.get(url, headers=headers)
-            async with async_timeout.timeout(10):
-                response = await self.session.get(url, headers=headers)
-                _LOGGER.debug("Reponse content: %s", str(response.content))
-            if response.status == 200:
-                device_info = await response.text()
-                _LOGGER.debug("Reponse content: %s", device_info)
-                try:
-                    device_info = loads(decrypt(device_info, self.api_key))
-                except: raise ConfigEntryAuthFailed
-                device_info = device_info['state']['reported']
-                _LOGGER.debug("Device info: %s", str(device_info))
-                self.device_info.update(device_info)
-                return device_info
-            else:
-                _LOGGER.critical("Status code: "+str(response.status))
-                raise ConfigEntryNotReady
-        except Exception as e:
-            _LOGGER.warning("Failed to connect: %s", e)
-            raise ConfigEntryNotReady
-    
-    async def get_alerts(self) -> json:
-        """Get device alerts."""
-        url = 'http://' + self.host + '/alerts'
-        headers = {'Accept': '*/*'}
-        try:
-            # r = requests.get(url, headers=headers)
-            async with async_timeout.timeout(10):
-                response = await self.session.get(url, headers=headers)
-                _LOGGER.info("Reponse content: %s", str(response.content))
-            if response.status == 200:
-                device_info = await response.text()
-                _LOGGER.debug("Reponse content: %s", device_info)
-                try:
-                    device_info = loads(decrypt(device_info, self.api_key))
-                except: raise ConfigEntryAuthFailed
-                device_info = device_info['state']['reported']
-                _LOGGER.debug("Device info: %s", str(device_info))
-                return device_info
-            else:
-                _LOGGER.critical("Status code: "+str(response.status))
-                raise ConfigEntryNotReady
         except Exception as e:
             _LOGGER.warning("Failed to connect: %s", e)
             raise ConfigEntryNotReady
@@ -162,6 +115,7 @@ class AMASHub:
                 except: raise ConfigEntryAuthFailed
                 device_info = device_info['state']['reported']
                 self.device_info = device_info
+                self.last_update = time.time()
                 _LOGGER.debug("Device info: %s", str(response.content))
             else:
                 _LOGGER.critical("Status code: "+str(response.status))
@@ -170,42 +124,26 @@ class AMASHub:
             _LOGGER.warning("Failed to connect: %s", e)
             raise ConfigEntryNotReady
 
-    async def update_info(self) -> None:
+    async def stream_info(self) -> None:
         """Update device information."""
-        url = 'http://' + self.host + '/data'
-        headers = {'Accept': '*/*'}
+        url = 'http://' + self.host + '/stream'
         try:
-            # r = requests.get(url, headers=headers)
-            async with async_timeout.timeout(10):
-                response = await self.session.get(url, headers=headers)
-                _LOGGER.debug("Reponse content: %s", str(response.content))
-            if response.status == 200:
-                device_info = await response.text()
-                try:
-                    device_info = loads(decrypt(device_info, self.api_key))
-                except: raise ConfigEntryAuthFailed
-                device_info = device_info['state']['reported']
-                _LOGGER.debug("Device info: %s", str(device_info))
-            else:
-                _LOGGER.critical("Status code: "+str(response.status))
-                raise ConfigEntryNotReady
-            url = 'http://' + self.host + '/alerts'
-            # r = requests.get(url, headers=headers)
-            async with async_timeout.timeout(10):
-                response = await self.session.get(url, headers=headers)
-                _LOGGER.debug("Resonse content: %s", str(response.content))
-            if response.status == 200:
-                device_alerts = await response.text()
-                try:
-                    device_alerts = loads(decrypt(device_alerts, self.api_key))
-                except: raise ConfigEntryAuthFailed
-                device_alerts = device_alerts['state']['reported']
-                _LOGGER.debug("Device alerts: %s", str(device_alerts))
-            else:
-                _LOGGER.critical("Status code: "+str(response.status))
-                raise ConfigEntryNotReady
-            device_info.update(device_alerts)
-            self.device_info = device_info
+            async with self.session.ws_connect(url) as ws:
+                while True:
+                    async for msg in ws:
+                        if msg.type == aiohttp.WSMsgType.TEXT:
+                            if msg.data == 'close cmd':
+                                await ws.close()
+                                break
+                            else:
+                                try:
+                                    device_info = loads(decrypt(msg.data, self.api_key))
+                                    device_info = device_info['state']['reported']
+                                    self.device_info = device_info
+                                    self.last_update = time.time()
+                                except: raise ConfigEntryAuthFailed
+                        elif msg.type == aiohttp.WSMsgType.ERROR:
+                            break
         except Exception as e:
             _LOGGER.warning("Failed to connect: %s", e)
             raise ConfigEntryNotReady

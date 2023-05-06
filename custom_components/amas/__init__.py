@@ -5,6 +5,7 @@ import logging
 
 import async_timeout
 import voluptuous as vol
+import asyncio, time
 
 from homeassistant.config_entries import SOURCE_IMPORT, ConfigEntry
 from homeassistant.const import (
@@ -81,8 +82,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     name = entry.data[CONF_NAME]
     api = AMASHub(host, hass, async_create_clientsession(hass))
     if await api.authenticate(api_key):
-        device_info = await api.get_data()
-        hass.config_entries.async_update_entry(entry, unique_id=('AMAS-'+str(device_info['dev_id'])))
+        asyncio.create_task(api.stream_info())
+        hass.config_entries.async_update_entry(entry, unique_id=('AMAS-'+str(api.device_info['dev_id'])))
     
     # TODO 3. Store an API object for your platforms to access
     # hass.data[DOMAIN][entry.entry_id] = MyApi(...)
@@ -91,17 +92,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         """Fetch data from API endpoint.
 
         """
-        try:
-            # Note: asyncio.TimeoutError and aiohttp.ClientError are already
-            # handled by the data update coordinator.
-            async with async_timeout.timeout(10):
-                await api.update_info()
-        except ConfigEntryAuthFailed as err:
-            # Raising ConfigEntryAuthFailed will cancel future updates
-            # and start a config flow with SOURCE_REAUTH (async_step_reauth)
-            raise ConfigEntryAuthFailed from err
-        except ConfigEntryNotReady as err:
-            raise UpdateFailed(f"Error communicating with API: {err}")
+        now = time.time()
+        last_update = api.last_update
+        if now - last_update > 180:
+            raise ConfigEntryNotReady
 
     coordinator = DataUpdateCoordinator(
         hass,
