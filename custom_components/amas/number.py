@@ -152,7 +152,6 @@ class AMASNumber(AMASTechEntity, NumberEntity):
             military = converted_hour + converted_min
             _LOGGER.debug("Sending light control " + act_key + ': ' + military)
             await self.api.control_device({'light': {act_key: military, 'override': False}})
-            await self.async_update()
         except Exception as err:
             _LOGGER.error("Unable to turn on light control " + act_key + " : %s", err)
         
