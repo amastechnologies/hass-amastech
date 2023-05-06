@@ -86,6 +86,7 @@ class AMASHub:
                 payload = await response.text()
                 _LOGGER.debug("Reponse content: %s", payload)
                 device_info = loads(decrypt(payload, api_key))
+                device_info = device_info['state']['reported']
                 self.api_key = api_key
                 self.device_info = device_info
                 self.last_update = time.time()
