@@ -99,8 +99,6 @@ class AMASNumber(AMASTechEntity, NumberEntity):
                 converted_hour = converted_hour + 1
             else:
                 converted_hour = 0
-        if converted_min == 29 or converted_min == 14 or converted_min == 44 or converted_min == 4 or converted_min == 9 or converted_min == 19 or converted_min == 24 or converted_min == 34 or converted_min == 39 or converted_min == 49 or converted_min == 54:
-            converted_min = converted_min + 1
         converted_min = str(converted_min) if len(str(converted_min)) == 2 else '0' + str(converted_min)
         converted_hour = str(converted_hour) if len(str(converted_hour)) == 2 else '0' + str(converted_hour)
         return converted_hour + converted_min
@@ -150,6 +148,7 @@ class AMASNumber(AMASTechEntity, NumberEntity):
             converted_min = str(converted_min) if len(str(converted_min)) == 2 else '0' + str(converted_min)
             converted_hour = str(converted_hour) if len(str(converted_hour)) == 2 else '0' + str(converted_hour)
             military = converted_hour + converted_min
+            if military == '2400': military = '0000'
             _LOGGER.debug("Sending light control " + act_key + ': ' + military)
             await self.api.control_device({'light': {act_key: military, 'override': False}})
             await self.async_update()
