@@ -82,7 +82,6 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     name = entry.data[CONF_NAME]
     api = AMASHub(host, hass, async_create_clientsession(hass))
     if await api.authenticate(api_key):
-        asyncio.create_task(api.stream_info())
         hass.config_entries.async_update_entry(entry, unique_id=('AMAS-'+str(api.device_info['dev_id'])))
     
     # TODO 3. Store an API object for your platforms to access
@@ -92,10 +91,18 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         """Fetch data from API endpoint.
 
         """
+        if api.stream_task is None:
+            api.stream_task = asyncio.create_task(api.stream_info())
         now = time.time()
         last_update = api.last_update
         if now - last_update > 180:
-            raise ConfigEntryNotReady
+            if api.stream_task is not None:
+                try:
+                    if not api.stream_task.done():
+                        api.stream_task.cancel()
+                except: pass
+                api.stream_task = asyncio.create_task(api.stream_info())
+
 
     coordinator = DataUpdateCoordinator(
         hass,

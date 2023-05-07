@@ -4,7 +4,7 @@ from __future__ import annotations
 from collections.abc import Callable
 from dataclasses import dataclass
 from homeassistant.exceptions import ConfigEntryAuthFailed, ConfigEntryNotReady
-import json, logging
+import json, logging, asyncio
 import aiohttp
 import async_timeout
 from datetime import timedelta
@@ -30,7 +30,7 @@ DOMAIN = 'amas'
 DEFAULT_NAME = 'AMAS'
 DATA_KEY_API = 'api'
 DATA_KEY_COORDINATOR = 'coordinator'
-MIN_TIME_BETWEEN_UPDATES = timedelta(seconds=2)
+MIN_TIME_BETWEEN_UPDATES = timedelta(seconds=1)
 
 
 def decrypt(payload, token):
@@ -71,6 +71,7 @@ class AMASHub:
         self.api_key = ''
         self.device_info = {}
         self.last_update = 0
+        self.stream_task = None
 
     async def authenticate(self, api_key: str) -> bool:
         """Test if we can decrypt responses."""
@@ -124,30 +125,27 @@ class AMASHub:
         except Exception as e:
             _LOGGER.warning("Failed to connect: %s", e)
             raise ConfigEntryNotReady
-
+        
     async def stream_info(self) -> None:
-        """Update device information."""
         url = 'http://' + self.host + '/stream'
-        try:
-            async with self.session.ws_connect(url) as ws:
-                while True:
-                    async for msg in ws:
-                        if msg.type == aiohttp.WSMsgType.TEXT:
-                            if msg.data == 'close cmd':
-                                await ws.close()
-                                break
-                            else:
-                                try:
-                                    device_info = loads(decrypt(msg.data, self.api_key))
-                                    device_info = device_info['state']['reported']
-                                    self.device_info = device_info
-                                    self.last_update = time.time()
-                                except: raise ConfigEntryAuthFailed
-                        elif msg.type == aiohttp.WSMsgType.ERROR:
-                            break
-        except Exception as e:
-            _LOGGER.warning("Failed to connect: %s", e)
-            raise ConfigEntryNotReady
+        async with self.session.ws_connect(url) as ws:
+            async for msg in ws:
+                if msg.type == aiohttp.WSMsgType.TEXT:
+                    if decrypt(msg.data, self.api_key) == 'Rebooting...':
+                        await ws.close()
+                        await asyncio.sleep(5)
+                        raise ConfigEntryNotReady
+                    else:
+                        try:
+                            device_info = loads(decrypt(msg.data, self.api_key))
+                            device_info = device_info['state']['reported']
+                            self.device_info = device_info
+                            self.last_update = time.time()
+                        except: raise ConfigEntryAuthFailed
+                elif msg.type == aiohttp.WSMsgType.ERROR:
+                    raise ConfigEntryNotReady
+                else: raise ConfigEntryNotReady
+    
 
 @dataclass
 class AMASNumberEntityDescription(NumberEntityDescription):
