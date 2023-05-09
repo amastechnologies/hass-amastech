@@ -102,7 +102,7 @@ class AMASHub:
             mactoken = a2b_base64(mactoken)
             body=loads(encryptAndMac(dumps({'state': {'desired': {}}}).encode(), api_key, mactoken))
             # r = requests.get(url, headers=headers)
-            async with async_timeout.timeout(10):
+            async with async_timeout.timeout(15):
                 response = await self.session.post(url, json=body)
             if response.status == 200:
                 payload = await response.json()
@@ -129,7 +129,7 @@ class AMASHub:
         payload = loads(encryptAndMac(dumps(body).encode(), self.api_key, self.mactoken).encode())
         try:
             # r = requests.post(url, headers=headers, body=body)
-            async with async_timeout.timeout(10):
+            async with async_timeout.timeout(15):
                 response = await self.session.post(url, json=payload)
                 _LOGGER.debug("Response content: %s", str(response.content))
             if response.status == 200:
@@ -154,7 +154,14 @@ class AMASHub:
         async with self.session.ws_connect(url) as ws:
             async for msg in ws:
                 _LOGGER.debug(msg.type)
-                if msg.type == aiohttp.WSMsgType.TEXT:
+                if msg.type == aiohttp.WSMsgType.BINARY:
+                    try:
+                        device_info = loads(decryptAndVerify(loads(msg.data.decode()), self.api_key, self.mactoken))
+                        device_info = device_info['state']['reported']
+                        self.device_info = device_info
+                        self.last_update = time.time()
+                    except: raise ConfigEntryAuthFailed
+                elif msg.type == aiohttp.WSMsgType.TEXT:
                     if decryptAndVerify(msg.data, self.api_key, self.mactoken) == 'Rebooting...':
                         await ws.close()
                         await asyncio.sleep(5)
@@ -169,12 +176,7 @@ class AMASHub:
                 elif msg.type == aiohttp.WSMsgType.ERROR:
                     raise ConfigEntryNotReady
                 else:
-                    try:
-                        device_info = loads(decryptAndVerify(msg.json, self.api_key, self.mactoken))
-                        device_info = device_info['state']['reported']
-                        self.device_info = device_info
-                        self.last_update = time.time()
-                    except: raise ConfigEntryAuthFailed
+                    raise ConfigEntryAuthFailed
     
 
 @dataclass
