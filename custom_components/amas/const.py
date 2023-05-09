@@ -4,7 +4,7 @@ from __future__ import annotations
 from collections.abc import Callable
 from dataclasses import dataclass
 from homeassistant.exceptions import ConfigEntryAuthFailed, ConfigEntryNotReady
-import json, logging, asyncio
+import json, logging, asyncio, hashlib
 import aiohttp
 import async_timeout
 from datetime import timedelta
@@ -20,7 +20,7 @@ from homeassistant.const import TEMP_CELSIUS, PERCENTAGE
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 from cryptography.hazmat.primitives import padding
 import os, time
-from binascii import a2b_base64, b2a_base64
+from binascii import a2b_base64, b2a_base64, hexlify
 from json import loads, dumps
 
 _LOGGER = logging.getLogger(__name__)
@@ -56,6 +56,26 @@ def encrypt(data, token):
     enc = enc.replace('\n','=')
     return enc
 
+def calculate_mac(enc):
+	cbcmac = hashlib.sha256(enc.encode())
+	cbcmac = hexlify(cbcmac.digest()).decode().strip()
+	return cbcmac
+
+# Encrypt and Calculate MAC
+def encryptAndMac(message, token, mactoken):
+	base64enc = encrypt(message, token)
+	cbcmac = calculate_mac(base64enc)
+	base64mac = encrypt(cbcmac.encode(), mactoken)
+	return dumps({'base64enc': base64enc, 'base64mac': base64mac})
+
+# Verify and Decrypt
+def decryptAndVerify(enc_and_mac, token, mactoken):
+	cbcmac = decrypt(enc_and_mac['base64mac'], mactoken)
+	if calculate_mac(enc_and_mac['base64enc']) == cbcmac:
+		return decrypt(enc_and_mac['base64enc'], token)
+	else:
+		return False
+
 
 class AMASHub:
     """AMASHub class to check authentication and get device info.
@@ -69,26 +89,29 @@ class AMASHub:
         self.hass = hass
         self.loop = hass.loop
         self.api_key = ''
+        self.mactoken = ''
         self.device_info = {}
         self.last_update = 0
         self.stream_task = None
 
-    async def authenticate(self, api_key: str) -> bool:
+    async def authenticate(self, api_key: str, mactoken: str) -> bool:
         """Test if we can decrypt responses."""
         url = 'http://' + self.host + '/configure'
         headers = {'Accept': '*/*'}
         try:
             api_key = a2b_base64(api_key)
-            body=encrypt(dumps({'state': {'desired': {}}}).encode(), api_key)
+            mactoken = api_key = a2b_base64(mactoken)
+            body=encryptAndMac(dumps({'state': {'desired': {}}}).encode(), api_key, mactoken)
             # r = requests.get(url, headers=headers)
             async with async_timeout.timeout(10):
-                response = await self.session.post(url, headers=headers, data=body)
+                response = await self.session.post(url, headers=headers, data=body.encode())
             if response.status == 200:
                 payload = await response.text()
                 _LOGGER.debug("Reponse content: %s", payload)
-                device_info = loads(decrypt(payload, api_key))
+                device_info = loads(decryptAndVerify(payload, api_key, mactoken))
                 device_info = device_info['state']['reported']
                 self.api_key = api_key
+                self.mactoken = mactoken
                 self.device_info = device_info
                 self.last_update = time.time()
                 return True
@@ -103,7 +126,7 @@ class AMASHub:
         url = 'http://' + self.host + '/configure'
         headers = {'Accept': '*/*'}
         body = {'state': {'desired': state}}
-        payload = encrypt(dumps(body).encode(), self.api_key).encode()
+        payload = encryptAndMac(dumps(body).encode(), self.api_key, self.mactoken).encode()
         try:
             # r = requests.post(url, headers=headers, body=body)
             async with async_timeout.timeout(10):
@@ -113,7 +136,7 @@ class AMASHub:
                 device_info = await response.text()
                 _LOGGER.debug("Reponse content: %s", device_info)
                 try:
-                    device_info = loads(decrypt(device_info, self.api_key))
+                    device_info = loads(decryptAndVerify(device_info, self.api_key,self.mactoken))
                 except: raise ConfigEntryAuthFailed
                 device_info = device_info['state']['reported']
                 self.device_info = device_info
@@ -131,13 +154,13 @@ class AMASHub:
         async with self.session.ws_connect(url) as ws:
             async for msg in ws:
                 if msg.type == aiohttp.WSMsgType.TEXT:
-                    if decrypt(msg.data, self.api_key) == 'Rebooting...':
+                    if decryptAndVerify(msg.data, self.api_key, self.mactoken) == 'Rebooting...':
                         await ws.close()
                         await asyncio.sleep(5)
                         raise ConfigEntryNotReady
                     else:
                         try:
-                            device_info = loads(decrypt(msg.data, self.api_key))
+                            device_info = loads(decryptAndVerify(msg.data, self.api_key, self.mactoken))
                             device_info = device_info['state']['reported']
                             self.device_info = device_info
                             self.last_update = time.time()

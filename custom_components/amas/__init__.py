@@ -10,6 +10,7 @@ import asyncio, time
 from homeassistant.config_entries import SOURCE_IMPORT, ConfigEntry
 from homeassistant.const import (
     CONF_API_KEY,
+    CONF_API_TOKEN,
     CONF_HOST,
     CONF_NAME,
     Platform,
@@ -43,6 +44,7 @@ AMAS_SCHEMA = vol.Schema(
         {
             vol.Required(CONF_HOST): cv.string,
             vol.Required(CONF_API_KEY): cv.string,
+            vol.Required(CONF_API_TOKEN): cv.string,
             vol.Optional(CONF_NAME, default=DEFAULT_NAME): cv.string,
         },
     )
@@ -80,8 +82,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     host = entry.data[CONF_HOST]
     api_key = entry.data[CONF_API_KEY]
     name = entry.data[CONF_NAME]
+    mactoken = entry.data[CONF_API_TOKEN]
     api = AMASHub(host, hass, async_create_clientsession(hass))
-    if await api.authenticate(api_key):
+    if await api.authenticate(api_key, mactoken):
         hass.config_entries.async_update_entry(entry, unique_id=('AMAS-'+str(api.device_info['dev_id'])))
     else: raise ConfigEntryAuthFailed
     
@@ -97,7 +100,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         now = time.time()
         last_update = api.last_update
         if now - last_update > 180:
-            if await api.authenticate(api.api_key):
+            if await api.authenticate(api.api_key, api.mactoken):
                 try:
                     if not api.stream_task.done():
                         api.stream_task.cancel()
