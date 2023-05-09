@@ -97,19 +97,20 @@ class AMASHub:
     async def authenticate(self, api_key: str, mactoken: str) -> bool:
         """Test if we can decrypt responses."""
         url = 'http://' + self.host + '/configure'
-        headers = {'Accept': '*/*'}
         try:
             api_key = a2b_base64(api_key)
             mactoken = api_key = a2b_base64(mactoken)
-            body=encryptAndMac(dumps({'state': {'desired': {}}}).encode(), api_key, mactoken)
+            body=loads(encryptAndMac(dumps({'state': {'desired': {}}}).encode(), api_key, mactoken))
             # r = requests.get(url, headers=headers)
             async with async_timeout.timeout(10):
-                response = await self.session.post(url, headers=headers, data=body.encode())
+                response = await self.session.post(url, json=body)
             if response.status == 200:
-                payload = await response.text()
-                _LOGGER.debug("Reponse content: %s", payload)
-                device_info = loads(decryptAndVerify(payload, api_key, mactoken))
-                device_info = device_info['state']['reported']
+                payload = await response.json()
+                _LOGGER.debug("Reponse content: %s", str(payload))
+                try:
+                    device_info = loads(decryptAndVerify(payload, api_key, mactoken))
+                    device_info = device_info['state']['reported']
+                except: raise ConfigEntryAuthFailed
                 self.api_key = api_key
                 self.mactoken = mactoken
                 self.device_info = device_info
@@ -124,17 +125,16 @@ class AMASHub:
     async def control_device(self, state: dict[str, Any]) -> None:
         """Control device."""
         url = 'http://' + self.host + '/configure'
-        headers = {'Accept': '*/*'}
         body = {'state': {'desired': state}}
-        payload = encryptAndMac(dumps(body).encode(), self.api_key, self.mactoken).encode()
+        payload = loads(encryptAndMac(dumps(body).encode(), self.api_key, self.mactoken).encode())
         try:
             # r = requests.post(url, headers=headers, body=body)
             async with async_timeout.timeout(10):
-                response = await self.session.post(url, data=payload, headers=headers)
+                response = await self.session.post(url, json=payload)
                 _LOGGER.debug("Response content: %s", str(response.content))
             if response.status == 200:
-                device_info = await response.text()
-                _LOGGER.debug("Reponse content: %s", device_info)
+                device_info = await response.json()
+                _LOGGER.debug("Reponse content: %s", str(device_info))
                 try:
                     device_info = loads(decryptAndVerify(device_info, self.api_key,self.mactoken))
                 except: raise ConfigEntryAuthFailed
@@ -160,14 +160,20 @@ class AMASHub:
                         raise ConfigEntryNotReady
                     else:
                         try:
-                            device_info = loads(decryptAndVerify(msg.data, self.api_key, self.mactoken))
+                            device_info = loads(decryptAndVerify(loads(msg.data), self.api_key, self.mactoken))
                             device_info = device_info['state']['reported']
                             self.device_info = device_info
                             self.last_update = time.time()
                         except: raise ConfigEntryAuthFailed
                 elif msg.type == aiohttp.WSMsgType.ERROR:
                     raise ConfigEntryNotReady
-                else: raise ConfigEntryNotReady
+                else: 
+                    try:
+                        device_info = loads(decryptAndVerify(msg.json, self.api_key, self.mactoken))
+                        device_info = device_info['state']['reported']
+                        self.device_info = device_info
+                        self.last_update = time.time()
+                    except: raise ConfigEntryAuthFailed
     
 
 @dataclass
