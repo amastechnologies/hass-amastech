@@ -99,7 +99,7 @@ class AMASHub:
         url = 'http://' + self.host + '/configure'
         try:
             api_key = a2b_base64(api_key)
-            mactoken = api_key = a2b_base64(mactoken)
+            mactoken = a2b_base64(mactoken)
             body=loads(encryptAndMac(dumps({'state': {'desired': {}}}).encode(), api_key, mactoken))
             # r = requests.get(url, headers=headers)
             async with async_timeout.timeout(10):
@@ -116,8 +116,8 @@ class AMASHub:
                 self.device_info = device_info
                 self.last_update = time.time()
                 return True
-            else:
-                return False
+            elif response.status == 500:
+                 raise ConfigEntryNotReady
         except Exception as e:
             _LOGGER.warning("Failed to connect: %s", e)
             raise ConfigEntryNotReady
