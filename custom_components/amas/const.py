@@ -119,7 +119,7 @@ class AMASHub:
             elif response.status == 500:
                  raise ConfigEntryNotReady
         except Exception as e:
-            _LOGGER.warning("Failed to connect: %s", e)
+            _LOGGER.warning("Failed to connect: %s", str(e))
             raise ConfigEntryNotReady
 
     async def control_device(self, state: dict[str, Any]) -> None:
@@ -146,37 +146,30 @@ class AMASHub:
                 _LOGGER.critical("Status code: "+str(response.status))
                 raise ConfigEntryNotReady
         except Exception as e:
-            _LOGGER.warning("Failed to connect: %s", e)
+            _LOGGER.warning("Failed to connect: %s", str(e))
             raise ConfigEntryNotReady
         
     async def stream_info(self) -> None:
         url = 'http://' + self.host + '/stream'
         async with self.session.ws_connect(url) as ws:
             async for msg in ws:
-                _LOGGER.debug(msg.type)
-                if msg.type == aiohttp.WSMsgType.BINARY:
+                _LOGGER.debug('WSMsgType: ' + str(msg.type))
+                if msg.type == aiohttp.WSMsgType.ERROR:
+                    await ws.close()
+                elif msg.type == aiohttp.WSMsgType.BINARY:
                     try:
                         device_info = loads(decryptAndVerify(loads(msg.data.decode()), self.api_key, self.mactoken))
                         device_info = device_info['state']['reported']
                         self.device_info = device_info
                         self.last_update = time.time()
-                    except: raise ConfigEntryAuthFailed
+                    except: await ws.close()
                 elif msg.type == aiohttp.WSMsgType.TEXT:
-                    if decryptAndVerify(msg.data, self.api_key, self.mactoken) == 'Rebooting...':
-                        await ws.close()
-                        await asyncio.sleep(5)
-                        raise ConfigEntryNotReady
-                    else:
-                        try:
-                            device_info = loads(decryptAndVerify(loads(msg.data), self.api_key, self.mactoken))
-                            device_info = device_info['state']['reported']
-                            self.device_info = device_info
-                            self.last_update = time.time()
-                        except: raise ConfigEntryAuthFailed
-                elif msg.type == aiohttp.WSMsgType.ERROR:
-                    raise ConfigEntryNotReady
-                else:
-                    raise ConfigEntryAuthFailed
+                    try:
+                        device_info = loads(decryptAndVerify(loads(msg.data), self.api_key, self.mactoken))
+                        device_info = device_info['state']['reported']
+                        self.device_info = device_info
+                        self.last_update = time.time()
+                    except: await ws.close()
     
 
 @dataclass
