@@ -53,7 +53,6 @@ def encrypt(data, token):
     ct = encryptor.update(data) + encryptor.finalize()
     enc = IV + ct
     enc = b2a_base64(enc).decode().strip()
-    #enc = enc.replace('\n','=')
     return enc
 
 def calculate_mac(enc):
