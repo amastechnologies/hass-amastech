@@ -52,8 +52,8 @@ def encrypt(data, token):
     encryptor = cipher.encryptor()
     ct = encryptor.update(data) + encryptor.finalize()
     enc = IV + ct
-    enc = b2a_base64(enc).decode()
-    enc = enc.replace('\n','=')
+    enc = b2a_base64(enc).decode().strip()
+    #enc = enc.replace('\n','=')
     return enc
 
 def calculate_mac(enc):
@@ -153,6 +153,7 @@ class AMASHub:
         url = 'http://' + self.host + '/stream'
         async with self.session.ws_connect(url) as ws:
             async for msg in ws:
+                _LOGGER.debug(msg.type)
                 if msg.type == aiohttp.WSMsgType.TEXT:
                     if decryptAndVerify(msg.data, self.api_key, self.mactoken) == 'Rebooting...':
                         await ws.close()
@@ -167,7 +168,7 @@ class AMASHub:
                         except: raise ConfigEntryAuthFailed
                 elif msg.type == aiohttp.WSMsgType.ERROR:
                     raise ConfigEntryNotReady
-                else: 
+                else:
                     try:
                         device_info = loads(decryptAndVerify(msg.json, self.api_key, self.mactoken))
                         device_info = device_info['state']['reported']
