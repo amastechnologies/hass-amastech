@@ -101,7 +101,7 @@ class AMASHub:
             mactoken = a2b_base64(mactoken)
             body=loads(encryptAndMac(dumps({'state': {'desired': {}}}).encode(), api_key, mactoken))
             # r = requests.get(url, headers=headers)
-            async with async_timeout.timeout(15):
+            async with async_timeout.timeout(20):
                 response = await self.session.post(url, json=body)
             if response.status == 200:
                 payload = await response.json()
@@ -128,7 +128,7 @@ class AMASHub:
         payload = loads(encryptAndMac(dumps(body).encode(), self.api_key, self.mactoken).encode())
         try:
             # r = requests.post(url, headers=headers, body=body)
-            async with async_timeout.timeout(15):
+            async with async_timeout.timeout(20):
                 response = await self.session.post(url, json=payload)
                 _LOGGER.debug("Response content: %s", str(response.content))
             if response.status == 200:

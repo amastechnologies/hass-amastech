@@ -110,7 +110,6 @@ class AMASDrainSwitch(AMASTechEntity, SwitchEntity):
         try:
             _LOGGER.debug("Sending drain on.")
             await self.api.control_device({'pump': {'drain': True}})
-            await self.async_update()
         except Exception as err:
             _LOGGER.error("Unable to turn on drain: %s", err)
 
@@ -119,7 +118,6 @@ class AMASDrainSwitch(AMASTechEntity, SwitchEntity):
         try:
             _LOGGER.debug("Sending drain off.")
             await self.api.control_device({'pump': {'drain': False}})
-            await self.async_update()
         except Exception as err:
             _LOGGER.error("Unable to turn off drain: %s", err)
 
@@ -148,7 +146,6 @@ class AMASLightOverrideSwitch(AMASTechEntity, SwitchEntity):
         try:
             _LOGGER.debug("Sending drain on.")
             await self.api.control_device({'light': {'override': '1'}})
-            await self.async_update()
         except Exception as err:
             _LOGGER.error("Unable to turn on light override: %s", err)
 
@@ -157,6 +154,5 @@ class AMASLightOverrideSwitch(AMASTechEntity, SwitchEntity):
         try:
             _LOGGER.debug("Sending drain off.")
             await self.api.control_device({'light': {'override': '0'}})
-            await self.async_update()
         except Exception as err:
             _LOGGER.error("Unable to turn off light override: %s", err)

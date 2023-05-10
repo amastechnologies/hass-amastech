@@ -151,7 +151,6 @@ class AMASNumber(AMASTechEntity, NumberEntity):
             if military == '2400': military = '0000'
             _LOGGER.debug("Sending light control " + act_key + ': ' + military)
             await self.api.control_device({'light': {act_key: military, 'override': False}})
-            await self.async_update()
         except Exception as err:
             _LOGGER.error("Unable to turn on light control " + act_key + " : %s", err)
         
