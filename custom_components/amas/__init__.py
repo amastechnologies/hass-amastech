@@ -100,12 +100,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         now = time.time()
         last_update = api.last_update
         if now - last_update > 180:
-            if await api.authenticate(api.api_key, api.mactoken):
-                try:
-                    api.stream_task.cancel()
-                except: pass
-                api.stream_task = asyncio.create_task(api.stream_info())
-            else: raise ConfigEntryNotReady
+            if not await api.authenticate(api.api_key, api.mactoken):
+                raise ConfigEntryNotReady
 
 
     coordinator = DataUpdateCoordinator(
