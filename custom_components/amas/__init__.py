@@ -5,7 +5,8 @@ import logging
 
 import async_timeout
 import voluptuous as vol
-import asyncio, time
+import asyncio
+from datetime import datetime
 
 from homeassistant.config_entries import SOURCE_IMPORT, ConfigEntry
 from homeassistant.const import (
@@ -97,7 +98,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         """
         if api.stream_task is None:
             api.stream_task = asyncio.create_task(api.stream_info())
-        now = time.time()
+        now = datetime.now().strftime('%s')
         last_update = api.last_update
         if now - last_update > 180:
             if not await api.authenticate(api.api_key, api.mactoken):
@@ -135,8 +136,7 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 @callback
 def _async_platforms(entry: ConfigEntry) -> list[Platform]:
     """Return platforms to be loaded / unloaded."""
-    platforms = [Platform.SWITCH, Platform.SENSOR, Platform.BINARY_SENSOR, Platform.NUMBER]
-    # platforms = [Platform.SWITCH, Platform.SENSOR, Platform.BINARY_SENSOR]
+    platforms = [Platform.SWITCH, Platform.SENSOR, Platform.BINARY_SENSOR, Platform.TIME]
     return platforms
 
 
