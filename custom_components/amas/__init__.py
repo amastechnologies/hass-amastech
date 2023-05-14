@@ -104,6 +104,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                 try:
                     api.stream_task.cancel()
                 except: pass
+                await asyncio.sleep(5)
                 api.stream_task = asyncio.create_task(api.stream_info())
             else:
                 raise ConfigEntryNotReady
