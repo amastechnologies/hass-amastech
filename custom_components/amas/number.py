@@ -3,13 +3,13 @@ from __future__ import annotations
 
 import logging
 from typing import Any
-from datetime import time, datetime
+import datetime
 
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_NAME
 
-from homeassistant.components.time import TimeEntity
+from homeassistant.components.number import NumberEntity, NumberMode
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ConditionError
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
@@ -22,7 +22,7 @@ from .const import (
     DATA_KEY_COORDINATOR,
     NUMBER_TYPES,
     AMASHub,
-    AMASTimeEntityDescription
+    AMASNumberEntityDescription
     )
 from . import AMASTechEntity
 
@@ -47,10 +47,10 @@ async def async_setup_entry(
     async_add_entities(numbers, True)
 
 
-class AMASNumber(AMASTechEntity, TimeEntity):
+class AMASNumber(AMASTechEntity, NumberEntity):
     """Representation of a AMAS light number."""
 
-    entity_description: AMASTimeEntityDescription
+    entity_description: AMASNumberEntityDescription
 
     def __init__(
         self,
@@ -58,7 +58,7 @@ class AMASNumber(AMASTechEntity, TimeEntity):
         coordinator: DataUpdateCoordinator,
         _name: str,
         _device_unique_id: str,
-        description: AMASTimeEntityDescription,
+        description: AMASNumberEntityDescription,
     ) -> None:
         """Initialize a AMAS sensor."""
         super().__init__(api, coordinator, _name, _device_unique_id)
@@ -66,13 +66,14 @@ class AMASNumber(AMASTechEntity, TimeEntity):
 
         self._attr_name = f"{_name} {description.name}"
         self._attr_unique_id = f"{self._device_unique_id}/{description.name}"
+        self._attr_mode = NumberMode.BOX
 
     @property
     def native_value(self) -> Any:
         """Return the state of the device."""
         act_key = str(self.entity_description.key).split('_')[1]
-        utc_aware = datetime.utcnow().astimezone(datetime.utcnow().astimezone().tzinfo)
-        local_aware = datetime.now().astimezone()
+        utc_aware = datetime.datetime.utcnow().astimezone(datetime.datetime.utcnow().astimezone().tzinfo)
+        local_aware = datetime.datetime.now().astimezone()
         time_delta = local_aware - utc_aware
         time_delta = time_delta.days*24*3600 + time_delta.seconds
         time_delta_min = int(time_delta/60)
@@ -92,25 +93,40 @@ class AMASNumber(AMASTechEntity, TimeEntity):
             converted_hour = int(converted_hour + 24)
         elif converted_hour >= 24:
             converted_hour = int(converted_hour - 24)
+        if converted_min == 59:
+            converted_min = 0
+            if converted_hour < 23:
+                converted_hour = converted_hour + 1
+            else:
+                converted_hour = 0
         converted_min = str(converted_min) if len(str(converted_min)) == 2 else '0' + str(converted_min)
         converted_hour = str(converted_hour) if len(str(converted_hour)) == 2 else '0' + str(converted_hour)
-        return time(converted_hour, converted_min)
+        return converted_hour + converted_min
 
-    async def async_set_native_value(self, value: time) -> None:
+    async def async_set_native_value(self, value: int) -> None:
         """Update the current value."""
         try:
             act_key = str(self.entity_description.key).split('_')[1]
-            _LOGGER.debug("Got local value light control " + act_key + ': ' + value.isoformat())
-            utc_aware = datetime.utcnow().astimezone(datetime.utcnow().astimezone().tzinfo)
-            local_aware = datetime.now().astimezone()
+            _LOGGER.debug("Got local value light control " + act_key + ': ' + str(value))
+            value = str(int(value))
+            if len(value) == 1:
+                value = '000' + value
+            elif len(value) == 2:
+                value = '00' + value
+            elif len(value) == 3:
+                value = '0' + value
+            if int(value[-2]+value[-1]) >= 60:
+                raise ConditionError
+            utc_aware = datetime.datetime.utcnow().astimezone(datetime.datetime.utcnow().astimezone().tzinfo)
+            local_aware = datetime.datetime.now().astimezone()
             time_delta = utc_aware - local_aware
             time_delta = time_delta.days*24*3600 + time_delta.seconds
             time_delta_min = int(time_delta/60)
             delta_min = time_delta_min%60
             delta_hour = time_delta_min//60
-            native = value.isoformat()
-            native_hour = native.split(':')[0]
-            native_min = native.split(':')[1]
+            native = value
+            native_hour = native[0]+native[1]
+            native_min = native[2]+native[3]
             converted_min = int(int(native_min) + delta_min)
             if converted_min >= 60:
                 converted_hour = int(1 + delta_hour + int(native_hour))
