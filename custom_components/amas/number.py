@@ -168,6 +168,6 @@ class AMASNumber(AMASTechEntity, NumberEntity):
             _LOGGER.debug("Sending light control " + act_key[1] + ': ' + value)
             await self.api.control_device({act_key[0]: {act_key[1]: value, 'override': False}})
         else:
-            _LOGGER.debug("Got pump control " + act_key[1] + ': ' + value)
+            _LOGGER.debug("Got pump control " + act_key[1] + ': ' + str(value))
             await self.api.control_device({act_key[0]: {act_key[1]: value}})
         
