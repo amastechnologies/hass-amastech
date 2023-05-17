@@ -39,16 +39,16 @@ def utc_to_local(value):
     native = value
     native_hour = native[0]+native[1]
     native_min = native[2]+native[3]
-    converted_min = int(int(native_min) + delta_min)
+    converted_min = int(native_min) + delta_min
     if converted_min >= 60:
-        converted_hour = int(1 + delta_hour + int(native_hour))
-        converted_min = int(converted_min%60)
+        converted_hour = 1 + delta_hour + int(native_hour)
+        converted_min = converted_min%60
     elif converted_min < 60 and converted_min >= 0:
-        converted_hour = int(delta_hour + int(native_hour))
+        converted_hour = delta_hour + int(native_hour)
     if converted_hour < 0:
-        converted_hour = int(converted_hour + 24)
+        converted_hour = converted_hour + 24
     elif converted_hour >= 24:
-        converted_hour = int(converted_hour - 24)
+        converted_hour = converted_hour - 24
     if converted_min == 59:
         converted_min = 0
         if converted_hour < 23:
@@ -71,16 +71,16 @@ def local_to_utc(value):
     native = value
     native_hour = native[0]+native[1]
     native_min = native[2]+native[3]
-    converted_min = int(int(native_min) + delta_min)
+    converted_min = int(native_min) + delta_min
     if converted_min >= 60:
-        converted_hour = int(1 + delta_hour + int(native_hour))
-        converted_min = int(converted_min%60)
+        converted_hour = 1 + delta_hour + int(native_hour)
+        converted_min = converted_min%60
     elif converted_min < 60 and converted_min >= 0:
-        converted_hour = int(delta_hour + int(native_hour))
+        converted_hour = delta_hour + int(native_hour)
     if converted_hour < 0:
-        converted_hour = int(converted_hour + 24)
+        converted_hour = converted_hour + 24
     elif converted_hour >= 24:
-        converted_hour = int(converted_hour - 24)
+        converted_hour = converted_hour - 24
     if converted_min == 59:
         converted_min = 0
         if converted_hour < 24:
