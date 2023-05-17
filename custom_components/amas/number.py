@@ -39,7 +39,7 @@ def utc_to_local(value):
     native = value
     native_hour = native[0]+native[1]
     native_min = native[2]+native[3]
-    converted_min = int(native_min) + delta_min
+    converted_min = int(float(native_min)) + delta_min
     if converted_min >= 60:
         converted_hour = 1 + delta_hour + int(native_hour)
         converted_min = converted_min%60
@@ -71,7 +71,7 @@ def local_to_utc(value):
     native = value
     native_hour = native[0]+native[1]
     native_min = native[2]+native[3]
-    converted_min = int(native_min) + delta_min
+    converted_min = int(float(native_min)) + delta_min
     if converted_min >= 60:
         converted_hour = 1 + delta_hour + int(native_hour)
         converted_min = converted_min%60
@@ -154,7 +154,7 @@ class AMASNumber(AMASTechEntity, NumberEntity):
         """Update the current value."""
         act_key = str(self.entity_description.key).split('_')
         if 'light' in act_key:
-            value = str(value)
+            value = str(int(float(value)))
             _LOGGER.debug("Got local value light control " + act_key[1] + ': ' + value)
             if len(value) == 1:
                 value = '000' + value
@@ -168,6 +168,7 @@ class AMASNumber(AMASTechEntity, NumberEntity):
             _LOGGER.debug("Sending light control " + act_key[1] + ': ' + value)
             await self.api.control_device({act_key[0]: {act_key[1]: value, 'override': False}})
         else:
+            value = int(float(value))
             _LOGGER.debug("Got pump control " + act_key[1] + ': ' + str(value))
             await self.api.control_device({act_key[0]: {act_key[1]: value}})
         
