@@ -72,7 +72,6 @@ class AMASCirculationSwitch(AMASTechEntity, SwitchEntity):
         try:
             _LOGGER.debug("Sending circulation on.")
             await self.api.control_device({'pump': {'powered': True}})
-            await self.async_update()
         except Exception as err:
             _LOGGER.error("Unable to turn on circulation: %s", err)
 
@@ -81,7 +80,6 @@ class AMASCirculationSwitch(AMASTechEntity, SwitchEntity):
         try:
             _LOGGER.debug("Sending circulation off.")
             await self.api.control_device({'pump': {'powered': False}})
-            await self.async_update()
         except Exception as err:
             _LOGGER.error("Unable to turn off circulation: %s", err)
 
