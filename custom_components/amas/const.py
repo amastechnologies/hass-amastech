@@ -218,6 +218,20 @@ NUMBER_TYPES: tuple[AMASNumberEntityDescription, ...] = (
         native_max_value=2400,
         native_min_value=0,
     ),
+    AMASNumberEntityDescription(
+        key="pump_interval",
+        name="Pump Interval",
+        icon="mdi:water-pump-off",
+        native_max_value=86399,
+        native_min_value=0,
+    ),
+    AMASNumberEntityDescription(
+        key="pump_runtime",
+        name="Pump Runtime",
+        icon="mdi:water-pump",
+        native_max_value=86399,
+        native_min_value=0,
+    ),
 )
 
 
