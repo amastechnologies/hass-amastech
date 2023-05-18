@@ -261,6 +261,7 @@ SENSOR_TYPES: tuple[AMASSensorEntityDescription, ...] = (
         key="water_level",
         name="Water Level",
         native_unit_of_measurement=PERCENTAGE,
+        entity_registry_enabled_default=False,
         icon="mdi:waves-arrow-up",
     ),
 )
@@ -298,25 +299,25 @@ BINARY_SENSOR_TYPES: tuple[AMASBinarySensorEntityDescription, ...] = (
         state_value=lambda api: bool(api.device_info['pump']['status']),
     ),
     AMASBinarySensorEntityDescription(
-        key="water_alert",
-        name="Water Alert",
-        entity_registry_enabled_default=False,
+        key="water_level_alert",
+        name="Water Level Alert",
+        entity_registry_enabled_default=True,
         device_class=BinarySensorDeviceClass.BATTERY,
-        state_value=lambda api: api.device_info['water_level_alert'] == 'Low',
+        state_value=lambda api: api.device_info['alerts']['water_level_alert'] == 'Low',
     ),
     AMASBinarySensorEntityDescription(
-        key="temp_alert",
-        name="Temperature Alert",
+        key="amb_temp_alert",
+        name="Ambient Temperature Alert",
         entity_registry_enabled_default=False,
         device_class=BinarySensorDeviceClass.PROBLEM,
-        state_value=lambda api: api.device_info['temp_alert'] == 'Low' or api.device_info['temp_alert'] == 'High',
+        state_value=lambda api: api.device_info['alerts']['temp_alert'] == 'Low' or api.device_info['alerts']['temp_alert'] == 'High',
     ),
     AMASBinarySensorEntityDescription(
-        key="humidity_alert",
-        name="Humidity Alert",
+        key="rel_humidity_alert",
+        name="Relative Humidity Alert",
         entity_registry_enabled_default=False,
         device_class=BinarySensorDeviceClass.PROBLEM,
-        state_value=lambda api: api.device_info['humidity_alert'] == 'Low' or api.device_info['humidity_alert'] == 'High',
+        state_value=lambda api: api.device_info['alerts']['humidity_alert'] == 'Low' or api.device_info['alerts']['humidity_alert'] == 'High',
     ),
 )
 

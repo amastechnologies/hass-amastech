@@ -7,7 +7,7 @@ import voluptuous as vol
 
 from homeassistant import config_entries
 from homeassistant.const import (
-    CONF_API_KEY,
+    CONF_ACCESS_TOKEN,
     CONF_API_TOKEN,
     CONF_HOST,
     CONF_NAME
@@ -46,7 +46,7 @@ class AMASFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
 
         if user_input is not None:
             host = user_input[CONF_HOST]
-            api_key = user_input[CONF_API_KEY]
+            api_key = user_input[CONF_ACCESS_TOKEN]
             name = user_input[CONF_NAME]
             mactoken = user_input[CONF_API_TOKEN]
             
@@ -55,7 +55,7 @@ class AMASFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
             if await hub.authenticate(api_key, mactoken):
                 self._config[CONF_NAME] = name
                 self._config[CONF_HOST] = host
-                self._config[CONF_API_KEY] = api_key
+                self._config[CONF_ACCESS_TOKEN] = api_key
                 self._config[CONF_API_TOKEN] = mactoken
                 return self.async_create_entry(
                 title=self._config[CONF_NAME],
@@ -76,8 +76,8 @@ class AMASFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
                         CONF_NAME, default=user_input.get(CONF_NAME, DEFAULT_NAME)
                     ): str,
                     vol.Required(
-                        CONF_API_KEY,
-                        default=user_input.get(CONF_API_KEY, ''),
+                        CONF_ACCESS_TOKEN,
+                        default=user_input.get(CONF_ACCESS_TOKEN, ''),
                     ): str,
                     vol.Required(
                         CONF_API_TOKEN,

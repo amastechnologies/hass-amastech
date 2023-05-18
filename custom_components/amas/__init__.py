@@ -9,7 +9,7 @@ import asyncio, time
 
 from homeassistant.config_entries import SOURCE_IMPORT, ConfigEntry
 from homeassistant.const import (
-    CONF_API_KEY,
+    CONF_ACCESS_TOKEN,
     CONF_API_TOKEN,
     CONF_HOST,
     CONF_NAME,
@@ -43,7 +43,7 @@ AMAS_SCHEMA = vol.Schema(
     vol.All(
         {
             vol.Required(CONF_HOST): cv.string,
-            vol.Required(CONF_API_KEY): cv.string,
+            vol.Required(CONF_ACCESS_TOKEN): cv.string,
             vol.Required(CONF_API_TOKEN): cv.string,
             vol.Optional(CONF_NAME, default=DEFAULT_NAME): cv.string,
         },
@@ -80,7 +80,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up AMASTech from a config entry."""
 
     host = entry.data[CONF_HOST]
-    api_key = entry.data[CONF_API_KEY]
+    api_key = entry.data[CONF_ACCESS_TOKEN]
     name = entry.data[CONF_NAME]
     mactoken = entry.data[CONF_API_TOKEN]
     api = AMASHub(host, hass, async_create_clientsession(hass))
@@ -165,7 +165,7 @@ class AMASTechEntity(CoordinatorEntity):
     @property
     def device_info(self) -> DeviceInfo:
         """Return the device information of the entity."""
-        config_url = f"http://{self.api.host}/data"
+        config_url = f"http://{self.api.host}/configure"
         
         return DeviceInfo(
             identifiers={(DOMAIN, self._device_unique_id)},
