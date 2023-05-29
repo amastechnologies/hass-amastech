@@ -95,7 +95,7 @@ class AMASHub:
 
     async def authenticate(self, api_key: str, mactoken: str) -> bool:
         """Test if we can decrypt responses."""
-        url = 'http://' + self.host + '/configure'
+        url = 'http://' + self.host + '/control'
         try:
             api_key = a2b_base64(api_key)
             mactoken = a2b_base64(mactoken)
@@ -123,7 +123,7 @@ class AMASHub:
     
     async def check_connection(self) -> bool:
         """ Test if we can reconnect """
-        url = 'http://' + self.host + '/configure'
+        url = 'http://' + self.host + '/control'
         try:
             body=loads(encryptAndMac(dumps({'state': {'desired': {}}}).encode(), self.api_key, self.mactoken))
             async with async_timeout.timeout(20):
@@ -146,7 +146,7 @@ class AMASHub:
 
     async def control_device(self, state: dict[str, Any]) -> None:
         """Control device."""
-        url = 'http://' + self.host + '/configure'
+        url = 'http://' + self.host + '/control'
         body = {'state': {'desired': state}}
         payload = loads(encryptAndMac(dumps(body).encode(), self.api_key, self.mactoken).encode())
         try:
@@ -172,7 +172,7 @@ class AMASHub:
             raise ConfigEntryNotReady
         
     async def stream_info(self) -> None:
-        url = 'http://' + self.host + '/stream'
+        url = 'http://' + self.host + '/metrics'
         try:
             async with self.session.ws_connect(url) as ws:
                 async for msg in ws:
