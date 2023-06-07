@@ -7,9 +7,10 @@ from homeassistant.exceptions import ConfigEntryAuthFailed, ConfigEntryNotReady
 import json, logging, asyncio, hashlib
 import aiohttp
 import async_timeout
-from datetime import timedelta
+from datetime import timedelta, datetime
 from typing import Any
 from homeassistant.components.sensor import SensorEntityDescription, SensorDeviceClass
+from homeassistant.components.time import TimeEntityDescription
 from homeassistant.components.number import NumberEntityDescription
 from homeassistant.core import HomeAssistant
 from homeassistant.components.binary_sensor import (
@@ -19,7 +20,7 @@ from homeassistant.components.binary_sensor import (
 from homeassistant.const import TEMP_CELSIUS, PERCENTAGE
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 from cryptography.hazmat.primitives import padding
-import os, time
+import os
 from binascii import a2b_base64, b2a_base64, hexlify
 from json import loads, dumps
 
@@ -113,7 +114,7 @@ class AMASHub:
                 self.api_key = api_key
                 self.mactoken = mactoken
                 self.device_info = device_info
-                self.last_update = time.time()
+                self.last_update = datetime.now().strftime('%s')
                 return True
             elif response.status == 500:
                  raise ConfigEntryNotReady
@@ -136,7 +137,7 @@ class AMASHub:
                     device_info = device_info['state']['reported']
                 except: raise ConfigEntryAuthFailed
                 self.device_info = device_info
-                self.last_update = time.time()
+                self.last_update = datetime.now().strftime('%s')
                 return True
             elif response.status == 500:
                  raise ConfigEntryNotReady
@@ -162,7 +163,7 @@ class AMASHub:
                 except: raise ConfigEntryAuthFailed
                 device_info = device_info['state']['reported']
                 self.device_info = device_info
-                self.last_update = time.time()
+                self.last_update = datetime.now().strftime('%s')
                 _LOGGER.debug("Device info: %s", str(response.content))
             else:
                 _LOGGER.critical("Status code: "+str(response.status))
@@ -184,14 +185,14 @@ class AMASHub:
                             device_info = loads(decryptAndVerify(loads(msg.data.decode()), self.api_key, self.mactoken))
                             device_info = device_info['state']['reported']
                             self.device_info = device_info
-                            self.last_update = time.time()
+                            self.last_update = datetime.now().strftime('%s')
                         except: await ws.close()
                     elif msg.type == aiohttp.WSMsgType.TEXT:
                         try:
                             device_info = loads(decryptAndVerify(loads(msg.data), self.api_key, self.mactoken))
                             device_info = device_info['state']['reported']
                             self.device_info = device_info
-                            self.last_update = time.time()
+                            self.last_update = datetime.now().strftime('%s')
                         except: await ws.close()
         except: _LOGGER.error('Streaming failed!')
     
@@ -205,32 +206,38 @@ class AMASNumberEntityDescription(NumberEntityDescription):
 
 NUMBER_TYPES: tuple[AMASNumberEntityDescription, ...] = (
     AMASNumberEntityDescription(
-        key="light_on",
-        name="Light On",
-        icon="mdi:lightbulb-on",
-        native_max_value=2400,
-        native_min_value=0,
-    ),
-    AMASNumberEntityDescription(
-        key="light_off",
-        name="Light Off",
-        icon="mdi:lightbulb-off-outline",
-        native_max_value=2400,
-        native_min_value=0,
-    ),
-    AMASNumberEntityDescription(
         key="pump_interval",
         name="Pump Interval",
         icon="mdi:water-pump-off",
         native_max_value=86399,
-        native_min_value=0,
+        native_min_value=600,
     ),
     AMASNumberEntityDescription(
         key="pump_runtime",
         name="Pump Runtime",
         icon="mdi:water-pump",
         native_max_value=86399,
-        native_min_value=0,
+        native_min_value=60,
+    ),
+)
+
+@dataclass
+class AMASTimeEntityDescription(TimeEntityDescription):
+    """Describes AMASTech time entity."""
+
+    icon: str = "mdi:leaf"
+
+
+NUMBER_TYPES: tuple[AMASTimeEntityDescription, ...] = (
+    AMASTimeEntityDescription(
+        key="light_on",
+        name="Light On",
+        icon="mdi:lightbulb-on",
+    ),
+    AMASTimeEntityDescription(
+        key="light_off",
+        name="Light Off",
+        icon="mdi:lightbulb-off-outline",
     ),
 )
 
