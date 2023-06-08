@@ -29,8 +29,8 @@ from . import AMASTechEntity
 _LOGGER = logging.getLogger(__name__)
 
 def utc_to_local(value):
-    utc_aware = datetime.datetime.utcnow().astimezone(datetime.datetime.utcnow().astimezone().tzinfo)
-    local_aware = datetime.datetime.now().astimezone()
+    utc_aware = datetime.utcnow().astimezone(datetime.utcnow().astimezone().tzinfo)
+    local_aware = datetime.now().astimezone()
     time_delta = local_aware - utc_aware
     time_delta = time_delta.days*24*3600 + time_delta.seconds
     time_delta_min = int(time_delta/60)
@@ -55,14 +55,12 @@ def utc_to_local(value):
             converted_hour = converted_hour + 1
         else:
             converted_hour = 0
-    converted_min = str(converted_min) if len(str(converted_min)) == 2 else '0' + str(converted_min)
-    converted_hour = str(converted_hour) if len(str(converted_hour)) == 2 else '0' + str(converted_hour)
     
     return time(converted_hour, converted_min)
 
 def local_to_utc(value):
-    utc_aware = datetime.datetime.utcnow().astimezone(datetime.datetime.utcnow().astimezone().tzinfo)
-    local_aware = datetime.datetime.now().astimezone()
+    utc_aware = datetime.utcnow().astimezone(datetime.utcnow().astimezone().tzinfo)
+    local_aware = datetime.now().astimezone()
     time_delta = utc_aware - local_aware
     time_delta = time_delta.days*24*3600 + time_delta.seconds
     time_delta_min = int(time_delta/60)
@@ -138,20 +136,20 @@ class AMASNumber(AMASTechEntity, TimeEntity):
     @property
     def native_value(self) -> Any:
         """Return the state of the device."""
-        act_key = str(self.entity_description.key).split('_')[1]
+        act_key = str(self.entity_description.key).split('_')
         value = utc_to_local(str(self.api.device_info[act_key[0]][act_key[1]]))
         return value
 
-    async def async_set_native_value(self, value: time) -> None:
+    async def async_set_value(self, value: time) -> None:
         """Update the current value."""
         try:
-            act_key = str(self.entity_description.key).split('_')[1]
-            _LOGGER.debug("Got local value light control " + act_key + ': ' + value.isoformat())
+            act_key = str(self.entity_description.key).split('_')
+            _LOGGER.debug("Got local value light control " + act_key[1] + ': ' + value.isoformat())
             hours = str(value.hour) if len(str(value.hour)) == 2 else '0' + str(value.hour)
             minutes = str(value.minute) if len(str(value.minute)) == 2 else '0' + str(value.minute)
             military = local_to_utc(hours+minutes)
-            _LOGGER.debug("Sending light control " + act_key + ': ' + military)
-            await self.api.control_device({'light': {act_key: military, 'override': False}})
+            _LOGGER.debug("Sending light control " + act_key[1] + ': ' + military)
+            await self.api.control_device({act_key[0]: {act_key[1]: military, 'override': False}})
         except Exception as err:
-            _LOGGER.error("Unable to turn on light control " + act_key + " : %s", err)
+            _LOGGER.error("Unable to turn on light control " + act_key[1] + " : %s", err)
         

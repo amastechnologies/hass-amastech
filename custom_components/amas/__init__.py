@@ -100,7 +100,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             api.stream_task = asyncio.create_task(api.stream_info())
         now = datetime.now().strftime('%s')
         last_update = api.last_update
-        if now - last_update > 180:
+        if int(now) - int(last_update) > 180:
             if await api.check_connection():
                 try:
                     api.stream_task.cancel()
