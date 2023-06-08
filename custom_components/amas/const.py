@@ -210,14 +210,14 @@ NUMBER_TYPES: tuple[AMASNumberEntityDescription, ...] = (
         name="Pump Interval",
         icon="mdi:water-pump-off",
         native_max_value=86399,
-        native_min_value=0,
+        native_min_value=600,
     ),
     AMASNumberEntityDescription(
         key="pump_runtime",
         name="Pump Runtime",
         icon="mdi:water-pump",
         native_max_value=86399,
-        native_min_value=0,
+        native_min_value=60,
     ),
 )
 
@@ -228,7 +228,7 @@ class AMASTimeEntityDescription(TimeEntityDescription):
     icon: str = "mdi:leaf"
 
 
-NUMBER_TYPES: tuple[AMASTimeEntityDescription, ...] = (
+TIME_TYPES: tuple[AMASTimeEntityDescription, ...] = (
     AMASTimeEntityDescription(
         key="light_on",
         name="Light On",

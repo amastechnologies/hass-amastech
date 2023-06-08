@@ -20,7 +20,7 @@ from .const import (
     DOMAIN as AMAS_DOMAIN,
     DATA_KEY_API,
     DATA_KEY_COORDINATOR,
-    NUMBER_TYPES,
+    TIME_TYPES,
     AMASHub,
     AMASTimeEntityDescription
     )
@@ -108,7 +108,7 @@ async def async_setup_entry(
             entry.entry_id,
             description,
         )
-        for description in NUMBER_TYPES
+        for description in TIME_TYPES
     ]
     async_add_entities(numbers, True)
 
