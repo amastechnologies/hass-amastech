@@ -86,7 +86,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     mactoken = entry.data[CONF_API_TOKEN]
     api = AMASHub(host, hass, async_create_clientsession(hass))
     if await api.authenticate(api_key, mactoken):
-        hass.config_entries.async_update_entry(entry, unique_id=('AMAS-'+str(api.device_info['dev_id'])))
+        hass.config_entries.async_update_entry(entry, unique_id=('AMAS-'+str(api.device_info['device_id'])))
     else: raise ConfigEntryAuthFailed
     
     # TODO 3. Store an API object for your platforms to access
