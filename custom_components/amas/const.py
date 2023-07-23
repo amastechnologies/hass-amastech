@@ -251,14 +251,14 @@ class AMASSensorEntityDescription(SensorEntityDescription):
 
 SENSOR_TYPES: tuple[AMASSensorEntityDescription, ...] = (
     AMASSensorEntityDescription(
-        key="ambient_temp",
+        key="ambient_temperature",
         name="Ambient Temperature",
         native_unit_of_measurement=TEMP_CELSIUS,
         icon="mdi:thermometer",
         device_class=SensorDeviceClass.TEMPERATURE,
     ),
     AMASSensorEntityDescription(
-        key="humidity",
+        key="relative_humidity",
         name="Relative Humidity",
         native_unit_of_measurement=PERCENTAGE,
         icon="mdi:water-percent",
